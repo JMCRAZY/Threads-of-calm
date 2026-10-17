@@ -1,0 +1,211 @@
+/* ==========================================
+   Registro con la ilustración
+   ========================================== */
+
+/* Registro con la ilustración */
+#onb {
+  background-color: #0b080c;
+  background-size: cover;
+  background-position: center;
+  backdrop-filter: none;
+}
+.reg-wrap {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 44px);
+  padding: 24px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.reg-art {
+  flex: 0 1 460px;
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px #000a;
+  border: 1px solid #f3b8c840;
+}
+.reg-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.reg-art:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 72%, #0b080c88);
+}
+.reg-card {
+  flex: 0 1 420px;
+  width: 100%;
+  color: #f6e3ea;
+  background: rgba(14, 10, 16, 0.93);
+  border: 1px solid #f3b8c880;
+  border-radius: 24px;
+  padding: 24px 24px 22px;
+  text-align: center;
+  box-shadow:
+    0 0 0 4px #0b080c,
+    0 0 0 5px #f3b8c840,
+    0 24px 70px #000b;
+}
+.reg-card h2 {
+  font: italic 600 clamp(2rem, 6vw, 2.6rem)/1.1 var(--serif);
+  color: #f6e3ea;
+  margin: 6px 0 2px;
+}
+.reg-card h2:after {
+  display: none;
+}
+.reg-tag {
+  font: 500 0.95rem var(--serif);
+  color: #f3d3dc;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+.reg-card h3 {
+  font: 500 1.5rem var(--serif);
+  color: #f6e3ea;
+  margin: 18px 0 6px;
+}
+.reg-card p.reg-sub {
+  color: #e5cdd6;
+  font: 1rem/1.5 var(--serif);
+  margin: 0 0 12px;
+}
+.reg-pick {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  margin: 6px 0 10px;
+}
+.reg-pick button {
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  color: #e5cdd6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font:
+    600 0.9rem "DM Sans",
+    sans-serif;
+}
+.reg-pick img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f3b8c860;
+  filter: saturate(0.75) brightness(0.75);
+  transition: 0.25s;
+}
+.reg-pick button.on img {
+  border-color: #f3b8c8;
+  box-shadow:
+    0 0 0 4px #c58d9d55,
+    0 0 24px #f3b8c899;
+  filter: none;
+  transform: scale(1.06);
+}
+.reg-pick button.on span {
+  color: #f3b8c8;
+}
+.reg-f {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #f3dbe3aa;
+  border-radius: 999px;
+  padding: 0 16px;
+  margin: 12px 0;
+  height: 54px;
+}
+.reg-f svg {
+  flex: 0 0 22px;
+}
+.reg-card .reg-f input {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: #f6e3ea;
+  padding: 0;
+  height: 100%;
+  font: 1rem var(--serif);
+  outline: 0;
+}
+.reg-f:focus-within {
+  border-color: #f3b8c8;
+  box-shadow: 0 0 0 3px #c58d9d44;
+}
+.reg-f input::placeholder {
+  color: #cdb3bd;
+}
+.reg-f .eye {
+  background: none;
+  border: 0;
+  color: #f3b8c8;
+  padding: 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 6px;
+}
+.reg-card .reg-save {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: #a8627f;
+  color: #fff;
+  font: italic 1.35rem var(--serif);
+  margin-top: 8px;
+  padding: 0;
+}
+.reg-card .reg-save:hover {
+  background: #b8708d;
+}
+.reg-err {
+  min-height: 1.3em;
+  color: #ffb3b3;
+  font:
+    0.9rem "DM Sans",
+    sans-serif;
+  margin: 4px 0 0;
+}
+.reg-quote {
+  font: italic 0.95rem var(--serif);
+  color: #e5cdd6;
+  margin: 14px 0 0;
+}
+@media (max-width: 860px) {
+  .reg-wrap {
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .reg-art {
+    flex: none;
+    width: 100%;
+    max-width: 420px;
+  }
+  .reg-art img {
+    object-fit: cover;
+    object-position: 50% 25%;
+    height: 190px;
+  }
+}
+.vbox .vp img.cover-img {
+  width: auto;
+  max-width: 300px;
+  height: auto;
+  max-height: 440px;
+  margin: 20px auto;
+  object-fit: contain;
+  border-radius: 4px 14px 14px 4px;
+  box-shadow: 0 14px 30px #302a4040;
+  background: none;
+}

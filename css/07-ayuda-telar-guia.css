@@ -1,0 +1,185 @@
+/* ==========================================
+   Ayuda con respiración, telar y guía
+   ========================================== */
+
+/* Ayuda y respiración */
+#helpBtn {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  border: 0;
+  border-radius: 999px;
+  background: var(--rose);
+  color: var(--plum);
+  padding: 13px 22px;
+  font-weight: 700;
+  box-shadow: 0 10px 26px #302a4038;
+}
+.orb {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin: 20px auto;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #fff,
+    var(--rose) 60%,
+    var(--violet)
+  );
+  box-shadow: 0 0 50px #7768a655;
+  animation: breathe 10s ease-in-out infinite;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font: 600 1rem var(--serif);
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(0.6);
+  }
+  45%,
+  55% {
+    transform: scale(1.05);
+  }
+}
+.urgent {
+  background: #fdebe9;
+  border-left: 5px solid #b8433a;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 12px 0;
+  text-align: left;
+  font-size: 0.92rem;
+}
+footer {
+  margin: 56px 0 100px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--mute);
+  font-size: 0.88rem;
+}
+/* Telar */
+.loom {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-height: 190px;
+  padding: 14px;
+  background: #2f2b42;
+  border-radius: 12px;
+  border-top: 10px solid #4b4467;
+}
+.thread {
+  width: 18px;
+  height: 150px;
+  border: 0;
+  padding: 0;
+  border-radius: 9px;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.28) 0 3px,
+    transparent 3px 7px
+  );
+  animation: drop 0.9s ease-out;
+}
+.thread:hover,
+.thread:focus-visible {
+  transform: translateY(6px);
+}
+@keyframes drop {
+  from {
+    height: 0;
+  }
+  to {
+    height: 150px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thread {
+    animation: none;
+  }
+}
+.colors {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.colors input {
+  position: absolute;
+  opacity: 0;
+}
+.colors span {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.colors input:checked + span {
+  box-shadow: 0 0 0 3px var(--ink);
+}
+.colors input:focus-visible + span {
+  box-shadow: 0 0 0 3px var(--sage);
+}
+.colors label {
+  margin: 0;
+  position: relative;
+}
+#readout {
+  margin-top: 12px;
+  min-height: 54px;
+}
+/* Guía */
+.q-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.q-item p {
+  margin: 0 0 6px;
+  font-size: 0.98rem;
+}
+.opts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+}
+.opts label {
+  margin: 0;
+  font-weight: 400;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  background: var(--soft);
+  padding: 5px 10px;
+  border-radius: 20px;
+}
+.result {
+  margin-top: 16px;
+  background: var(--sage-soft);
+  border-left: 5px solid var(--sage);
+}
+.urgent {
+  background: #fdebe9;
+  border-left: 5px solid #c9564a;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-family: system-ui, sans-serif;
+}
+.support li {
+  margin-bottom: 6px;
+}
+.tag {
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  background: var(--soft);
+  color: var(--violet);
+  padding: 2px 8px;
+  border-radius: 10px;
+}

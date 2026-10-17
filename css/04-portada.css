@@ -1,0 +1,140 @@
+/* ==========================================
+   Portada y sello de autor
+   ========================================== */
+
+/* Portada */
+.home {
+  padding: 54px 0 30px;
+}
+.home .in {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 34px;
+  align-items: center;
+}
+.home h2 {
+  font-size: clamp(2.5rem, 6vw, 4.8rem);
+  letter-spacing: -0.04em;
+}
+.home h2:after {
+  display: none;
+}
+.home p {
+  color: var(--mute);
+  max-width: 480px;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+.actions a {
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.pri {
+  background: var(--plum);
+  color: #fff;
+}
+.sec {
+  border: 1px solid var(--violet);
+  color: var(--plum);
+}
+.stage {
+  position: relative;
+  height: 370px;
+}
+.stage:before {
+  content: "";
+  position: absolute;
+  width: 290px;
+  height: 290px;
+  border-radius: 50%;
+  right: 6%;
+  top: 30px;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--soft) 70%);
+}
+.stage:after {
+  content: "";
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  right: 0;
+  bottom: 6px;
+  background: var(--sage-soft);
+}
+.fl {
+  position: absolute;
+  width: 170px;
+  aspect-ratio: 3/4;
+  border: 7px solid var(--card);
+  outline: 1px solid var(--gold);
+  box-shadow: 0 20px 50px #302a4030;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--soft), var(--sage-soft));
+  animation: bob 8s ease-in-out infinite;
+  cursor: pointer;
+  padding: 0;
+}
+.fl img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.fl:nth-child(1) {
+  left: 2%;
+  top: 44px;
+}
+.fl:nth-child(2) {
+  left: 38%;
+  top: 0;
+  animation-delay: -3s;
+}
+.fl:nth-child(3) {
+  right: 0;
+  bottom: 6px;
+  animation-delay: -5s;
+}
+/* Sello de autor (hanko) */
+.seal {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 9px;
+  background: var(--plum);
+  color: var(--card);
+  font:
+    700 1.15rem "Shippori Mincho",
+    serif;
+  outline: 1px solid var(--gold);
+  outline-offset: -4px;
+  transform: rotate(-4deg);
+  box-shadow: 0 4px 10px #302a4030;
+}
+.seal.big {
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+  font-size: 1.8rem;
+  border-radius: 12px;
+}
+.by {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--mute);
+}
+.by b {
+  display: block;
+  color: var(--plum);
+  font-size: 0.92rem;
+}

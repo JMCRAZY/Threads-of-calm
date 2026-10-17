@@ -1,0 +1,48 @@
+/* ==========================================
+   Onboarding
+   ========================================== */
+
+/* Onboarding */
+#onb {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  overflow: auto;
+  background: rgba(248, 246, 242, 0.55);
+  backdrop-filter: blur(3px);
+}
+.onb-in {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 26px 16px 70px;
+  text-align: center;
+}
+.onb-in > img {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  box-shadow: 0 8px 22px #302a4030;
+}
+.onb-in h2 {
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+.onb-in h2:after {
+  margin: 12px auto;
+}
+.onb-in .lead {
+  margin: 0 auto 18px;
+}
+#onbSlot {
+  text-align: left;
+}
+.ed-grid {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 22px;
+}
+.ed-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}

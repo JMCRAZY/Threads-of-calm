@@ -1,0 +1,91 @@
+/* ==========================================
+   Base: colores, tipografía y fondo
+   ========================================== */
+
+:root {
+  --bg: #f8f6f2;
+  --card: #fffdf9;
+  --ink: #292638;
+  --mute: #706b7b;
+  --violet: #7768a6;
+  --soft: #ece7f3;
+  --sage: #718d7e;
+  --sage-soft: #e3ebe3;
+  --rose: #c58d9d;
+  --line: #e3dce6;
+  --plum: #302a40;
+  --blue: #8495ad;
+  --gold: #b8a47c;
+  --serif: "Playfair Display", Georgia, serif;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    400 16px/1.7 "DM Sans",
+    system-ui,
+    sans-serif;
+  overflow-x: hidden;
+}
+body.locked {
+  overflow: hidden;
+}
+body:before {
+  display: none;
+}
+@keyframes slide {
+  to {
+    background-position: 200px 200px;
+  }
+}
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  color: var(--plum);
+  line-height: 1.15;
+  margin: 0;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+.wrap {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+section {
+  padding: 64px 0 8px;
+}
+h2 {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  letter-spacing: -0.02em;
+}
+h2:after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  margin: 12px 0 14px;
+}
+.lead {
+  color: var(--mute);
+  max-width: 700px;
+  margin: 0 0 22px;
+}
+.eyebrow {
+  font: 700 0.72rem/1.4 "DM Sans";
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sage);
+}

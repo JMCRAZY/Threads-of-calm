@@ -1,0 +1,69 @@
+/* ==========================================
+   Pantalla de entrada con el logo
+   ========================================== */
+
+/* Pantalla de entrada con el logo */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 253, 249, 0.93),
+    rgba(248, 246, 242, 0.78) 75%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition:
+    opacity 0.9s,
+    visibility 0.9s;
+  padding: 20px;
+  text-align: center;
+}
+#splash.hide {
+  opacity: 0;
+  visibility: hidden;
+}
+#splash img {
+  width: min(66vmin, 430px);
+  height: auto;
+  animation:
+    rise 1.6s ease both,
+    bob 7s ease-in-out 1.6s infinite;
+}
+#splash p {
+  font: italic 1.1rem var(--serif);
+  color: var(--mute);
+  margin: 0;
+  animation: rise 1.6s 0.5s ease both;
+}
+#enter {
+  margin-top: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--plum);
+  color: #fff;
+  padding: 13px 34px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  box-shadow: 0 10px 26px #302a4030;
+  animation: rise 1.6s 1s ease both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-8px);
+  }
+}

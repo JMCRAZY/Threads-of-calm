@@ -1,0 +1,158 @@
+/* ==========================================
+   Poemas flotantes y visor ampliado
+   ========================================== */
+
+/* Poemas flotantes */
+.pstage {
+  position: relative;
+  height: 560px;
+  border-radius: 26px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 20%, #eeeaf5, transparent 50%),
+    radial-gradient(circle at 85% 85%, var(--sage-soft), transparent 55%),
+    var(--card);
+  border: 1px solid var(--line);
+}
+.poem {
+  position: absolute;
+  width: min(280px, 72%);
+  padding: 18px 20px;
+  border: 0;
+  border-left: 3px solid var(--rose);
+  background: rgba(255, 253, 249, 0.82);
+  backdrop-filter: blur(6px);
+  border-radius: 4px 18px 18px 4px;
+  box-shadow: 0 12px 30px #302a4018;
+  text-align: left;
+  font: italic 1.12rem/1.55 var(--serif);
+  color: var(--plum);
+  animation: float var(--t) ease-in-out var(--d) infinite alternate;
+}
+.poem small {
+  display: block;
+  margin-top: 8px;
+  font: 700 0.68rem "DM Sans";
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sage);
+}
+@keyframes float {
+  from {
+    transform: translate(0, 14px) rotate(-1.5deg);
+  }
+  to {
+    transform: translate(14px, -20px) rotate(1.5deg);
+  }
+}
+.vbox .poemtxt {
+  font: italic clamp(1.4rem, 4vw, 2rem)/1.6 var(--serif);
+  color: var(--plum);
+}
+/* Visor ampliado */
+dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+dialog::backdrop {
+  background: rgba(48, 42, 64, 0.78);
+  backdrop-filter: blur(8px);
+}
+.vwrap {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.vbox {
+  position: relative;
+  width: min(940px, 100%);
+  background: var(--card);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px #0006;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  animation: zoom 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.vbox.one {
+  grid-template-columns: 1fr;
+  max-width: 620px;
+  text-align: center;
+}
+@keyframes zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.7) translateY(30px);
+  }
+}
+.vbox .vp {
+  background: var(--soft);
+  min-height: 280px;
+}
+.vbox .vp img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  max-height: 80vh;
+}
+.vbox .vt {
+  padding: 30px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+}
+.vbox h2 {
+  font-size: 2rem;
+}
+.vbox h2:after {
+  margin: 10px 0;
+}
+.vbox .q {
+  font: italic 1.15rem var(--serif);
+  color: var(--mute);
+  margin: 0;
+}
+.vbox.one .vt {
+  align-items: center;
+}
+.vbox.one h2:after {
+  margin: 10px auto;
+}
+.vbox dl {
+  margin: 0;
+  font-size: 0.92rem;
+}
+.vbox dt {
+  font-weight: 700;
+  color: var(--sage);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 10px;
+}
+.vbox dd {
+  margin: 2px 0 0;
+}
+.x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--card);
+  color: var(--plum);
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px #0003;
+}
