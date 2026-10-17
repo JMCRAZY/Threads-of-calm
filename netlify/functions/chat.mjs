@@ -36,7 +36,7 @@ export default async (req, context) => {
   if (req.method !== "POST") return json({ error: "method" }, 405);
   if (process.env.CHAT_DISABLED === "1") return json({ error: "off" }, 503);
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return json({ error: "config" }, 500);
+  if (!key) { console.error("chat: falta la variable GEMINI_API_KEY"); return json({ error: "config" }, 500); }
 
   /* límite por persona (en memoria; se reinicia si la función se "duerme") */
   const ip = (context && context.ip) || req.headers.get("x-nf-client-connection-ip") || "x", now = Date.now();
@@ -67,13 +67,18 @@ export default async (req, context) => {
       headers: { "content-type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents, generationConfig: { temperature: 0.7, maxOutputTokens: 400 } })
     });
-    if (r.status === 429) return json({ error: "busy" }, 429);
-    if (!r.ok) return json({ error: "upstream" }, 502);
+    if (r.status === 429) { console.error("chat: Google devolvió 429 (límite de uso)"); return json({ error: "busy" }, 429); }
+    if (!r.ok) {
+      let m = ""; try { const e = await r.json(); m = (e.error && e.error.message) || ""; } catch {}
+      console.error("chat: Google devolvió", r.status, "modelo:", MODEL(), "|", m.slice(0, 300)); /* solo el error técnico, nunca el texto del usuario */
+      return json({ error: "upstream" }, 502);
+    }
     const d = await r.json();
     const text = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(p => p.text || "").join("").trim();
-    if (!text) return json({ error: "empty" }, 502);
+    if (!text) { console.error("chat: Google respondió sin texto (posible bloqueo)", JSON.stringify(d.promptFeedback || {}).slice(0, 200)); return json({ error: "empty" }, 502); }
     return json({ reply: text, crisis: false });
   } catch (e) {
+    console.error("chat: fallo de red o tiempo agotado:", e && e.name);
     return json({ error: e && e.name === "AbortError" ? "timeout" : "upstream" }, 504);
   } finally { clearTimeout(timer); }
 };
