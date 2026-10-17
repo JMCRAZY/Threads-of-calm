@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#302a40">
+<title>Galería Perdida · Threads of Calm</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#302a40;--vio:#7768a6;--rose:#c58d9d;--sage:#718d7e;--gold:#d9b96a;--paper:#f6f1ea;--deep:#1f1a2b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0,#4a3f66,var(--ink) 58%,var(--deep));color:var(--paper);font:16px/1.5 "DM Sans",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+a{color:inherit}
+header{width:100%;max-width:700px;display:flex;justify-content:space-between;gap:12px;padding:10px 14px 0;font-size:.9rem}
+header a{opacity:.85;text-decoration:none;padding:6px 10px;border-radius:999px;border:1px solid #f6f1ea33}
+header a:hover,header a:focus-visible{opacity:1;border-color:var(--gold)}
+h1{font:italic 600 1.55rem/1.15 "Playfair Display",Georgia,serif;margin:8px 0 2px;text-align:center}
+#sub{margin:0 0 6px;font-size:.92rem;opacity:.9;text-align:center;min-height:1.4em;padding:0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+button{font:inherit;color:var(--paper);background:#f6f1ea14;border:1px solid #f6f1ea40;border-radius:999px;padding:6px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+button.on{background:var(--vio);border-color:var(--vio)}
+button.go{background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:600}
+canvas{margin-top:10px;touch-action:none;border-radius:14px;box-shadow:0 10px 40px #0008;cursor:pointer;background:#141020}
+#ov{position:fixed;inset:0;background:#1f1a2bd9;display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto}
+#ov[hidden]{display:none}
+.card{max-width:440px;width:100%;margin:auto;background:linear-gradient(160deg,#3b3355,#2a2438);border:1px solid var(--gold);border-radius:22px;padding:24px 20px;text-align:center}
+.card h2{font:italic 600 1.6rem/1.2 "Playfair Display",Georgia,serif;margin:0 0 4px}
+.card .by{opacity:.8;font-size:.9rem;margin:0 0 8px}
+.card .q{font:italic 500 1.1rem/1.5 "Playfair Display",Georgia,serif;margin:8px 0}
+.card .m{font-size:.95rem;text-align:left;margin:10px 0}
+.stars{font-size:2rem;color:var(--gold);letter-spacing:.2em}
+.code{font:600 1.5rem/1.3 "DM Sans",monospace;letter-spacing:.08em;color:var(--gold);background:#0003;border-radius:12px;padding:10px;margin:12px 0;word-break:break-all}
+.card p{margin:8px 0}
+.emos{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
+.emos button{padding:4px 11px;font-size:.88rem}
+textarea{width:100%;font:inherit;color:var(--paper);background:#0003;border:1px solid #f6f1ea40;border-radius:12px;padding:8px;resize:vertical}
+hr{border:0;border-top:1px solid #d9b96a55;margin:14px 0}
+</style>
+</head>
+<body>
+<header><a id="back" href="#">← Threads of Calm</a><a id="help" href="#">Necesito ayuda</a></header>
+<h1>Galería Perdida</h1>
+<p id="sub" aria-live="polite"></p>
+<div class="bar" id="lv" role="group" aria-label="Niveles"></div>
+<canvas id="cv" tabindex="0" role="application" aria-label="Obra desordenada. Toca un fragmento y luego otro para intercambiarlos, o arrastra uno sobre otro."></canvas>
+<div class="bar" style="margin-top:10px"><button id="hint">Pista</button><button id="peek">Ver modelo</button><button id="reset">Reiniciar nivel</button><button id="snd">Sonido: sí</button></div>
+<div id="ov"><div class="card" id="card"></div></div>
+
+<script>
+/* ====== Ajustes para integrar con la página final ====== */
+const APP_URL = "../index.html"; /* cambia esta ruta al publicar */
+const SALT = "toc2026"; /* debe ser el mismo en todos los juegos y en el verificador */
+/* ======================================================= */
+const $ = s => document.querySelector(s);
+$("#back").href = APP_URL; $("#help").href = APP_URL + "#guia";
+const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* Obras tomadas de la galería de la app (mismos textos) */
+const WORKS = [{"t":"La noche estrellada","a":"Vincent van Gogh","y":"1889","k":"Serenidad y turbulencia","q":"El cielo también se mueve cuando uno está en calma.","m":"Un cielo que gira sobre un pueblo dormido: la inquietud interior vuelta movimiento y luz. Las espirales pueden leerse como emoción desbordada, pero también como asombro ante lo inmenso.","wiki":"La noche estrellada","en":"The Starry Night"},{"t":"La gran ola de Kanagawa","a":"Katsushika Hokusai","y":"c. 1831","k":"Calma ante la fuerza","q":"Lo frágil también resiste la tormenta.","m":"Una ola enorme amenaza a los botes mientras el monte Fuji permanece quieto al fondo. Habla de la fuerza de lo que nos sobrepasa y de la calma que sigue ahí, aunque no la veamos.","wiki":"La gran ola de Kanagawa","en":"The Great Wave off Kanagawa"},{"t":"Nenúfares","a":"Claude Monet","y":"1914–1926","k":"Refugio","q":"Un jardín puede sostenerte cuando todo se mueve.","m":"El agua, la luz y las flores se mezclan sin horizonte, como un lugar donde detenerse. Invitan a mirar despacio y a bajar el ritmo.","wiki":"Nenúfares","en":"Water Lilies"},{"t":"El caminante sobre el mar de nubes","a":"Caspar David Friedrich","y":"c. 1818","k":"Soledad contemplativa","q":"Estar solo no siempre es estar perdido.","m":"Una figura de espaldas mira un paisaje cubierto de niebla. Puede sentirse como incertidumbre, pero también como la pausa antes de decidir el siguiente paso.","wiki":"El caminante sobre el mar de nubes","en":"Wanderer above the Sea of Fog"},{"t":"Impresión, sol naciente","a":"Claude Monet","y":"1872","k":"Amanecer","q":"Cada día empieza difuso, y aun así empieza.","m":"Un puerto entre la niebla y un sol anaranjado que apenas se distingue. La obra que dio nombre al impresionismo pinta la sensación del momento, no los detalles.","wiki":"Impresión, sol naciente","en":"Impression, Sunrise"},{"t":"Almendro en flor","a":"Vincent van Gogh","y":"1890","k":"Esperanza","q":"Algo florece aunque el invierno no haya terminado.","m":"Ramas de almendro en flor contra un cielo azul. Es una de sus imágenes más luminosas y delicadas, con clara influencia de la estampa japonesa.","wiki":"Almendro en flor","en":"Almond Blossoms"},{"t":"Los girasoles","a":"Vincent van Gogh","y":"1888","k":"Vitalidad","q":"Incluso lo que se marchita tiene color.","m":"Girasoles en un jarrón, de la plenitud a la flor ya vencida, pintados con capas gruesas de amarillo. Celebra la vida en todas sus etapas.","wiki":"Los girasoles (Van Gogh)","en":"Sunflowers (series of paintings by Van Gogh)"},{"t":"Terraza de café por la noche","a":"Vincent van Gogh","y":"1888","k":"Compañía en la noche","q":"La noche también puede ser cálida.","m":"Una terraza iluminada con luz amarilla bajo un cielo estrellado. Pinta la noche como un lugar acogedor, con gente y conversación.","wiki":"Terraza de café por la noche","en":"Café Terrace at Night"}];
+const PAL = [["#3b4a7a", "#e4d28a"], ["#2f4f7a", "#f3ece0"], ["#7aa6a0", "#e9a6b8"], ["#8a95ad", "#f0c987"], ["#e8997a", "#7aa6c8"], ["#9db8d9", "#e9a6b8"], ["#e0b93a", "#6f9a8d"], ["#1f2a55", "#f0c987"]];
+const LV = [{n: 3, t: "9 fragmentos", model: "always", edge: true}, {n: 4, t: "16 fragmentos", model: "hold", edge: true}, {n: 5, t: "25 fragmentos", model: "none", edge: false}];
+const EM = ["Calma", "Tristeza", "Esperanza", "Miedo", "Nostalgia", "Gratitud", "Ternura", "Inquietud"];
+const PHR = ["Lo que estaba disperso volvió a encontrarse.", "Cada pieza en su lugar, sin prisa.", "Aun sin el modelo, supiste reconocer lo que importaba."];
+
+let best = [0, 0, 0];
+try { best = JSON.parse(localStorage.getItem("gal_best")) || best; } catch (e) {}
+const save = () => { try { localStorage.setItem("gal_best", JSON.stringify(best)); } catch (e) {} };
+
+/* ---- audio generado por código ---- */
+let ac, mute = false;
+const PENT = [0, 2, 4, 7, 9, 12, 14, 16];
+const note = i => 261.63 * Math.pow(2, PENT[i % PENT.length] / 12);
+function tone(f, t = 0, d = 1.2, v = .09) {
+  if (mute || !ac) return;
+  const o = ac.createOscillator(), gn = ac.createGain(), s = ac.currentTime + t;
+  o.type = "sine"; o.frequency.value = f;
+  gn.gain.setValueAtTime(0, s); gn.gain.linearRampToValueAtTime(v, s + .015);
+  gn.gain.exponentialRampToValueAtTime(.0001, s + d);
+  o.connect(gn).connect(ac.destination); o.start(s); o.stop(s + d);
+}
+function wake() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (x) {} }
+  if (ac && ac.state === "suspended") ac.resume();
+}
+$("#snd").onclick = e => { mute = !mute; e.target.textContent = "Sonido: " + (mute ? "no" : "sí"); };
+
+/* ---- imágenes: Wikipedia como en la app, con ilustración de reserva ---- */
+const cache = {}, IM = 600;
+function mul(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
+function fallback(i) {
+  const c = document.createElement("canvas"); c.width = c.height = IM; const x = c.getContext("2d"), r = mul(i * 991 + 7), [a, b] = PAL[i % PAL.length];
+  const gr = x.createLinearGradient(0, 0, 0, IM); gr.addColorStop(0, a); gr.addColorStop(1, "#f6f1ea"); x.fillStyle = gr; x.fillRect(0, 0, IM, IM);
+  x.fillStyle = b; x.globalAlpha = .9; x.beginPath(); x.arc(120 + r() * 360, 110 + r() * 120, 50 + r() * 40, 0, 7); x.fill(); x.globalAlpha = 1;
+  for (let k = 0; k < 4; k++) { x.fillStyle = k % 2 ? a : b; x.globalAlpha = .45; x.beginPath(); x.moveTo(0, 300 + k * 70);
+    for (let p = 0; p <= IM; p += 60) x.lineTo(p, 300 + k * 70 + Math.sin(p / 70 + r() * 6) * (28 + k * 8)); x.lineTo(IM, IM); x.lineTo(0, IM); x.fill(); }
+  x.globalAlpha = .5; x.lineWidth = 6; x.lineCap = "round";
+  for (let k = 0; k < 40; k++) { x.strokeStyle = k % 3 ? "#302a40" : b; x.beginPath(); const px = r() * IM, py = r() * IM; x.moveTo(px, py); x.lineTo(px + 30 + r() * 50, py - 20 + r() * 40); x.stroke(); }
+  x.globalAlpha = 1; return c;
+}
+async function thumb(w) {
+  const T = async u => { try { const r = await fetch(u); if (!r.ok) return null; const j = await r.json(); return j.thumbnail && j.thumbnail.source; } catch (e) { return null; } }, e = encodeURIComponent;
+  const u = (await T("https://es.wikipedia.org/api/rest_v1/page/summary/" + e(w.wiki))) || (await T("https://en.wikipedia.org/api/rest_v1/page/summary/" + e(w.en)));
+  return u && u.replace(/\/\d+px-/, "/960px-");
+}
+function loadArt(i) {
+  if (cache[i]) return Promise.resolve(cache[i]);
+  return new Promise(res => {
+    let done = false;
+    const fin = (c, fb) => { if (done) return; done = true; res(cache[i] = {c, fb}); };
+    setTimeout(() => fin(fallback(i), true), 4500);
+    thumb(WORKS[i]).then(u => {
+      if (!u) return fin(fallback(i), true);
+      const im = new Image();
+      im.onload = () => { const c = document.createElement("canvas"); c.width = c.height = IM; const s = Math.min(im.width, im.height);
+        c.getContext("2d").drawImage(im, (im.width - s) / 2, (im.height - s) / 2, s, s, 0, 0, IM, IM); fin(c, false); };
+      im.onerror = () => fin(fallback(i), true); im.src = u;
+    });
+  });
+}
+
+/* ---- estado ---- */
+let order = WORKS.map((_, i) => i).sort(() => Math.random() - .5).slice(0, 3);
+let L = 0, wi = 0, n = 3, img = null, perm = [], sel = null, down = null, moves = 0, hints = 0, peeks = 0, opt = 0, state = "idle", hintPair = null, hintT = 0, peeking = false, solvedAt = 0, token = 0;
+function cycles(p) { const seen = new Set(); let c = 0; p.forEach((_, i) => { if (seen.has(i)) return; c++; let j = i; while (!seen.has(j)) { seen.add(j); j = p[j]; } }); return c; }
+function scramble(N) {
+  let p; do { p = Array.from({length: N}, (_, i) => i); for (let i = N - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [p[i], p[j]] = [p[j], p[i]]; } }
+  while (N - cycles(p) < Math.max(5, Math.round(N * .55)));
+  return p;
+}
+async function start(l) {
+  const my = ++token; L = l; wi = order[l]; n = LV[l].n; state = "load"; sel = null; down = null; moves = 0; hints = 0; peeks = 0; hintPair = null; solvedAt = 0; peeking = false;
+  $("#ov").hidden = true; ui(); $("#sub").textContent = "Cargando la obra…";
+  const a = await loadArt(wi); if (my !== token) return;
+  img = a.c; perm = scramble(n * n); opt = n * n - cycles(perm); state = "play";
+  $("#peek").disabled = LV[L].model !== "hold"; hud(a.fb);
+}
+function hud(fb) {
+  const name = L === 2 ? "obra misteriosa" : WORKS[wi].t;
+  $("#sub").textContent = `Nivel ${L + 1} · ${name} · ${moves} movimientos` + (fb ? " · sin conexión: ilustración de reserva" : "");
+}
+function ui() {
+  $("#lv").innerHTML = "";
+  LV.forEach((v, i) => {
+    const b = document.createElement("button"), open = i === 0 || best[i - 1] > 0;
+    b.textContent = `${i + 1} ${"★".repeat(best[i])}${"☆".repeat(3 - best[i])}`;
+    b.disabled = !open; b.className = i === L ? "on" : "";
+    b.setAttribute("aria-label", `Nivel ${i + 1}: ${v.t}, ${best[i]} de 3 estrellas`);
+    b.onclick = () => { wake(); start(i); }; $("#lv").appendChild(b);
+  });
+}
+$("#reset").onclick = () => { wake(); if (state !== "idle") start(L); };
+$("#hint").onclick = () => {
+  wake(); if (state !== "play") return;
+  const p = perm.findIndex((t, i) => t !== i); if (p < 0) return;
+  hintPair = [p, perm.indexOf(p)]; hintT = performance.now() + 2500; hints++;
+};
+const pk = on => { if (state !== "play" || LV[L].model !== "hold") return; if (on && !peeking) peeks++; peeking = on; };
+$("#peek").addEventListener("pointerdown", () => pk(true)); ["pointerup", "pointerleave", "pointercancel"].forEach(e => $("#peek").addEventListener(e, () => pk(false)));
+
+/* ---- dibujo ---- */
+const cv = $("#cv"), g = cv.getContext("2d"); let size = 400, dpr = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  size = Math.max(260, Math.min(innerWidth - 16, innerHeight - 215, 560));
+  cv.style.width = cv.style.height = size + "px"; cv.width = cv.height = Math.round(size * dpr);
+}
+addEventListener("resize", resize); resize();
+function frame(now) {
+  const W = size * dpr; g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#141020"; g.fillRect(0, 0, W, W);
+  if (state === "load" || !img) { g.fillStyle = "#f6f1ea"; g.textAlign = "center"; g.font = `${W * .045}px "DM Sans",sans-serif`; g.fillText("Buscando la obra en la galería…", W / 2, W / 2); requestAnimationFrame(frame); return; }
+  const ts = W / n, sz = IM / n, solved = state === "done", pr = solved ? (reduce ? 1 : Math.min(1, (now - solvedAt) / 900)) : 0, gap = (2.5 * dpr) * (1 - pr);
+  perm.forEach((t, p) => {
+    const dx = (p % n) * ts, dy = (p / n | 0) * ts;
+    g.drawImage(img, (t % n) * sz, (t / n | 0) * sz, sz, sz, dx + gap, dy + gap, ts - gap * 2 + (gap ? 0 : .5), ts - gap * 2 + (gap ? 0 : .5));
+    if (!solved && LV[L].edge && t === p) { g.strokeStyle = "rgba(217,185,106,.8)"; g.lineWidth = 2 * dpr; g.strokeRect(dx + gap + 1, dy + gap + 1, ts - gap * 2 - 2, ts - gap * 2 - 2); }
+  });
+  const mark = (p, col, lw) => { g.strokeStyle = col; g.lineWidth = lw * dpr; g.strokeRect((p % n) * ts + 3 * dpr, (p / n | 0) * ts + 3 * dpr, ts - 6 * dpr, ts - 6 * dpr); };
+  if (sel !== null && !solved) { mark(sel, "#f6f1ea", 4); g.fillStyle = "rgba(246,241,234,.18)"; g.fillRect((sel % n) * ts, (sel / n | 0) * ts, ts, ts); }
+  if (hintPair && now < hintT) { const a = .5 + .5 * Math.sin(now / 130); g.globalAlpha = a; hintPair.forEach(p => mark(p, "#f3b8c8", 5)); g.globalAlpha = 1; }
+  if (LV[L].model === "always" && !solved) { const m = W * .22; g.strokeStyle = "#f6f1ea"; g.lineWidth = 2 * dpr; g.drawImage(img, W - m - 8 * dpr, 8 * dpr, m, m); g.strokeRect(W - m - 8 * dpr, 8 * dpr, m, m); }
+  if (peeking) { g.globalAlpha = .92; g.drawImage(img, 0, 0, W, W); g.globalAlpha = 1; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- entrada: tocar dos fragmentos o arrastrar uno sobre otro ---- */
+const idx = e => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height; return Math.max(0, Math.min(n - 1, y * n | 0)) * n + Math.max(0, Math.min(n - 1, x * n | 0)); };
+function swap(a, b) {
+  [perm[a], perm[b]] = [perm[b], perm[a]]; moves++; sel = null; hintPair = null;
+  const ok = (perm[a] === a ? 1 : 0) + (perm[b] === b ? 1 : 0); tone(note(ok ? 5 + ok : 1), 0, ok ? 1.4 : .5, ok ? .1 : .05);
+  hud(); if (perm.every((t, i) => t === i)) win();
+}
+cv.addEventListener("pointerdown", e => { wake(); if (state === "play") down = idx(e); });
+cv.addEventListener("pointerup", e => {
+  if (state !== "play" || down === null) return; const up = idx(e), d = down; down = null;
+  if (up !== d) return swap(d, up);
+  if (sel === null) sel = d; else if (sel === d) sel = null; else swap(sel, d);
+});
+cv.addEventListener("pointercancel", () => { down = null; });
+
+/* ---- fin de nivel, estrellas, sentir y sello ---- */
+function fnv(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function makeCode(name, stars) {
+  const a = fnv(name.trim().toLowerCase() + "|" + stars + "|GAL|" + SALT).toString(36).toUpperCase().padStart(7, "0").slice(-6);
+  return `GAL-${stars}-${a}`;
+}
+function profName() { try { return (JSON.parse(localStorage.getItem("toc_prof")) || {}).name || ""; } catch (e) { return ""; } }
+function who() {
+  let nm = profName(); try { nm = nm || localStorage.getItem("kin_name") || ""; } catch (e) {}
+  if (!nm) { nm = (prompt("¿Con qué nombre quieres firmar tu sello?") || "").trim(); try { localStorage.setItem("kin_name", nm); } catch (e) {} }
+  return nm;
+}
+const esc = t => String(t).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
+function win() {
+  state = "done"; solvedAt = performance.now(); sel = null;
+  const help = hints + peeks, stars = 1 + (moves <= Math.ceil(opt * 1.8) ? 1 : 0) + (moves <= Math.ceil(opt * 1.35) && help === 0 ? 1 : 0);
+  best[L] = Math.max(best[L], stars); save();
+  PENT.forEach((_, i) => tone(note(i), i * .1 + .2, 1.5, .07));
+  setTimeout(() => showEnd(stars), reduce ? 300 : 1800);
+}
+function showEnd(stars) {
+  const w = WORKS[wi], all = best.every(b => b > 0), tot = best.reduce((a, b) => a + b, 0), help = hints + peeks;
+  let h = `<div class="stars" aria-label="${stars} de 3 estrellas">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div>
+    <h2>${esc(w.t)}</h2><p class="by">${esc(w.a)} · ${esc(w.y)} · ${esc(w.k)}</p><div class="q">“${esc(w.q)}”</div>
+    <div class="m"><strong>Qué significa.</strong> ${esc(w.m)}</div>
+    <p style="font-size:.9rem;opacity:.85">${moves} movimientos (mínimo posible: ${opt})${help ? `, ${help} ayuda${help > 1 ? "s" : ""}` : ""}. ${stars < 3 ? "Para 3 estrellas: pocos movimientos y sin ayudas." : "¡Ojo de curador/a!"}</p>
+    <hr><p><strong>¿Qué sentiste al verla?</strong></p><div class="emos" id="emos">${EM.map(e => `<button type="button" data-e="${e}">${e}</button>`).join("")}</div>
+    <textarea id="fTxt" rows="2" maxlength="300" placeholder="Si quieres, escríbelo (opcional)"></textarea>
+    <p><button id="fSave" type="button">Guardar lo que sentí</button> <span id="fOk" style="color:#9fd0b4" hidden>Guardado ✓</span></p>`;
+  if (all && L === 2) {
+    const name = who() || "Anónimo/a", code = makeCode(name, tot), tier = tot >= 9 ? "de oro" : tot >= 6 ? "de plata" : "de bronce";
+    h += `<hr><p><strong>Sello de la Galería ${tier}</strong> · ${tot} de 9 estrellas</p><p>${esc(name)}, muestra este código para reclamar tu premio:</p><div class="code" id="cd">${code}</div><button id="cp">Copiar código</button>`;
+  }
+  h += `<p style="margin-top:14px">${L < 2 ? '<button class="go" id="nx">Siguiente nivel</button> ' : ""}<button id="rp">Jugar de nuevo</button> <button id="sv">Ver la obra</button></p>`;
+  $("#card").innerHTML = h; $("#ov").hidden = false; $("#ov").scrollTop = 0;
+  let emo = null;
+  $("#emos").onclick = e => { const b = e.target.closest("button"); if (!b) return; emo = emo === b.dataset.e ? null : b.dataset.e; $("#emos").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.e === emo)); };
+  $("#fSave").onclick = () => { /* mismo formato que la galería de la app: clave "r:" + título */
+    const txt = $("#fTxt").value.trim(); if (!emo && !txt) return;
+    try { const k = "r:" + w.t, r = JSON.parse(localStorage.getItem(k)) || []; r.push({emo, txt, who: profName() || "Anónimo", ts: Date.now()}); localStorage.setItem(k, JSON.stringify(r)); } catch (e) {}
+    $("#fOk").hidden = false; $("#fTxt").value = "";
+  };
+  if ($("#nx")) $("#nx").onclick = () => start(L + 1);
+  $("#rp").onclick = () => start(L);
+  $("#sv").onclick = () => { $("#ov").hidden = true; };
+  if ($("#cp")) $("#cp").onclick = e => { navigator.clipboard && navigator.clipboard.writeText($("#cd").textContent); e.target.textContent = "Copiado"; };
+  ui();
+}
+function showIntro() {
+  $("#card").innerHTML = `<h2>Galería Perdida</h2><p>Alguien desordenó las obras de la galería. <strong>Toca dos fragmentos para intercambiarlos</strong> (o arrastra uno sobre otro) hasta reconstruir la pintura.</p>
+    <p>Al terminar cada una, descubrirás qué significa y podrás contar qué sentiste: se guarda también en la galería de la app.</p>
+    <button class="go" id="go">Entrar a la galería</button>`;
+  $("#ov").hidden = false; $("#go").onclick = () => { wake(); start(0); };
+}
+ui(); $("#sub").textContent = "Reconstruye las obras de la galería."; $("#peek").disabled = true; showIntro();
+</script>
+</body>
+</html>

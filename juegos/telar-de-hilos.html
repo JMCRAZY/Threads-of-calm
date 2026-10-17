@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#302a40">
+<title>Telar de Hilos · Threads of Calm</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#302a40;--vio:#7768a6;--rose:#c58d9d;--sage:#718d7e;--gold:#d9b96a;--paper:#f6f1ea;--deep:#1f1a2b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0,#4a3f66,var(--ink) 58%,var(--deep));color:var(--paper);font:16px/1.5 "DM Sans",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+a{color:inherit}
+header{width:100%;max-width:700px;display:flex;justify-content:space-between;gap:12px;padding:10px 14px 0;font-size:.9rem}
+header a{opacity:.85;text-decoration:none;padding:6px 10px;border-radius:999px;border:1px solid #f6f1ea33}
+header a:hover,header a:focus-visible{opacity:1;border-color:var(--gold)}
+h1{font:italic 600 1.55rem/1.15 "Playfair Display",Georgia,serif;margin:8px 0 2px;text-align:center}
+#sub{margin:0 0 6px;font-size:.92rem;opacity:.9;text-align:center;min-height:1.4em;padding:0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+button{font:inherit;color:var(--paper);background:#f6f1ea14;border:1px solid #f6f1ea40;border-radius:999px;padding:6px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+button.on{background:var(--vio);border-color:var(--vio)}
+button.go{background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:600}
+canvas{margin-top:10px;touch-action:none;border-radius:18px;box-shadow:0 10px 40px #0006;cursor:pointer}
+#ov{position:fixed;inset:0;background:#1f1a2bd9;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+#ov[hidden]{display:none}
+.card{max-width:420px;width:100%;background:linear-gradient(160deg,#3b3355,#2a2438);border:1px solid var(--gold);border-radius:22px;padding:26px 22px;text-align:center}
+.card h2{font:italic 600 1.7rem/1.2 "Playfair Display",Georgia,serif;margin:0 0 8px}
+.stars{font-size:2rem;color:var(--gold);letter-spacing:.2em}
+.code{font:600 1.5rem/1.3 "DM Sans",monospace;letter-spacing:.08em;color:var(--gold);background:#0003;border-radius:12px;padding:10px;margin:12px 0;word-break:break-all}
+.card p{margin:8px 0}
+</style>
+</head>
+<body>
+<header><a id="back" href="#">← Threads of Calm</a><a id="help" href="#">Necesito ayuda</a></header>
+<h1>Telar de Hilos</h1>
+<p id="sub" aria-live="polite"></p>
+<div class="bar" id="lv" role="group" aria-label="Niveles"></div>
+<canvas id="cv" tabindex="0" role="application" aria-label="Telar. Toca un hilo o usa las teclas del 1 al 6 para pulsarlo."></canvas>
+<div class="bar" style="margin-top:10px">
+  <button id="again">Escuchar otra vez</button><button id="free">Modo libre</button><button id="dl">Descargar tapiz</button><button id="snd">Sonido: sí</button>
+</div>
+<div id="ov" hidden><div class="card" id="card"></div></div>
+
+<script>
+/* ====== Ajustes para integrar con la página final ====== */
+const APP_URL = "../index.html"; /* cambia esta ruta al publicar */
+const SALT = "toc2026"; /* debe ser el mismo en todos los juegos y en el verificador */
+/* ======================================================= */
+const $ = s => document.querySelector(s);
+$("#back").href = APP_URL; $("#help").href = APP_URL + "#guia";
+const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+const COL = ["#7a6fb0", "#6f9a8d", "#d98fa0", "#f0c987", "#9db8d9", "#b7a3d6"];
+const PENT = [0, 2, 4, 7, 9, 12];
+const LV = [{n: 4, len: 4, t: "4 hilos, 4 notas"}, {n: 5, len: 6, t: "5 hilos, 6 notas"}, {n: 6, len: 8, t: "6 hilos, 8 notas"}];
+const PHR = [
+  "Un hilo suelto también hace música.",
+  "Cada nota que recuerdas es un hilo que sostienes.",
+  "Lo que tejiste con calma ya es parte de ti."
+];
+const H = 1.15, MAXR = 8, RH = .075, BOT = 1.04;
+
+let best = [0, 0, 0];
+try { best = JSON.parse(localStorage.getItem("tel_best")) || best; } catch (e) {}
+const save = () => { try { localStorage.setItem("tel_best", JSON.stringify(best)); } catch (e) {} };
+
+/* ---- audio: cuerda pulsada, escala pentatónica ---- */
+let ac, mute = false;
+function tone(f, t = 0, d = 1.8, v = .13, type = "sine") {
+  if (mute || !ac) return;
+  const s = ac.currentTime + t;
+  [[type, f, v], ["triangle", f * 2.003, v * .25]].forEach(([ty, fr, vol]) => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = ty; o.frequency.value = fr;
+    g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(vol, s + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, s + d);
+    o.connect(g).connect(ac.destination); o.start(s); o.stop(s + d);
+  });
+}
+const freq = i => 261.63 * Math.pow(2, PENT[i] / 12);
+$("#snd").onclick = e => { mute = !mute; e.target.textContent = "Sonido: " + (mute ? "no" : "sí"); };
+function wake() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (x) {} }
+  if (ac && ac.state === "suspended") ac.resume();
+}
+
+/* ---- estado ---- */
+let L = 0, nT = 4, mel = [], pos = 0, errs = 0, replays = 0, state = "idle", tok = 0, rows = [], glow = [], wrongT = 0, freeMode = false;
+function makeMelody(n, len) {
+  const m = [Math.floor(Math.random() * n)];
+  while (m.length < len) {
+    const last = m[m.length - 1];
+    const opts = [-2, -1, 1, 2].map(d => last + d).filter(x => x >= 0 && x < n);
+    m.push(opts[Math.floor(Math.random() * opts.length)]);
+  }
+  return m;
+}
+function start(l) {
+  tok++; freeMode = false; L = l; nT = LV[l].n; mel = makeMelody(nT, LV[l].len);
+  pos = 0; errs = 0; replays = 0; rows = []; glow = []; $("#ov").hidden = true;
+  $("#free").textContent = "Modo libre"; $("#again").disabled = false;
+  ui(); wake();
+  if (ac && ac.state === "running") { $("#again").textContent = "Escuchar otra vez"; setTimeout(seq, 500); }
+  else { state = "idle"; $("#again").textContent = "Escuchar la melodía"; $("#sub").textContent = "Toca «Escuchar la melodía» para empezar."; }
+}
+function startFree() {
+  tok++; freeMode = true; nT = 6; rows = []; glow = []; state = "free"; $("#ov").hidden = true;
+  $("#free").textContent = "Volver al reto"; $("#again").disabled = true; wake();
+  $("#sub").textContent = "Modo libre: toca los hilos y teje tu propia melodía. Después descarga tu tapiz.";
+}
+function seq() {
+  if (freeMode) return;
+  state = "show"; const my = ++tok; pos = 0;
+  $("#sub").textContent = "Escucha y observa la melodía…";
+  mel.forEach((th, k) => setTimeout(() => { if (tok === my) pluck(th); }, 400 + k * 700));
+  setTimeout(() => { if (tok === my) { state = "play"; say(); } }, 400 + mel.length * 700);
+}
+function say() { $("#sub").textContent = `Tu turno: repite la melodía (${pos}/${mel.length}).`; }
+function ui() {
+  $("#lv").innerHTML = "";
+  LV.forEach((v, i) => {
+    const b = document.createElement("button"), open = i === 0 || best[i - 1] > 0;
+    b.textContent = `${i + 1} ${"★".repeat(best[i])}${"☆".repeat(3 - best[i])}`;
+    b.disabled = !open; b.className = i === L && !freeMode ? "on" : "";
+    b.setAttribute("aria-label", `Nivel ${i + 1}: ${v.t}, ${best[i]} de 3 estrellas`);
+    b.onclick = () => start(i); $("#lv").appendChild(b);
+  });
+}
+function pluck(i) { glow[i] = performance.now(); tone(freq(i)); }
+function weave(i) { rows.push({i, t: performance.now()}); if (rows.length > MAXR) rows.shift(); }
+function touch(i) {
+  wake();
+  if (state === "free") { pluck(i); weave(i); return; }
+  if (state !== "play") return;
+  if (i === mel[pos]) {
+    pluck(i); weave(i); pos++;
+    if (pos === mel.length) win(); else say();
+  } else {
+    errs++; wrongT = performance.now(); tone(110, 0, .5, .12, "triangle");
+    $("#sub").textContent = `Ese no era. Respira y prueba otra vez (${pos}/${mel.length}).`;
+  }
+}
+$("#again").onclick = () => {
+  wake();
+  if (state === "idle") { $("#again").textContent = "Escuchar otra vez"; seq(); }
+  else if (state === "play") { replays++; rows = []; seq(); }
+};
+$("#free").onclick = () => { wake(); freeMode ? start(L) : startFree(); ui(); };
+
+/* ---- dibujo ---- */
+const cv = $("#cv"), g = cv.getContext("2d"); let size = 400, dpr = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  size = Math.max(260, Math.min(innerWidth - 16, (innerHeight - 200) / H, 600));
+  cv.style.width = size + "px"; cv.style.height = size * H + "px";
+  cv.width = Math.round(size * dpr); cv.height = Math.round(size * H * dpr);
+}
+addEventListener("resize", resize); resize();
+const wx = i => .12 + i * (.76 / (nT - 1));
+function frame(now) {
+  g.setTransform(dpr * size, 0, 0, dpr * size, 0, 0);
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#3a3150"); bg.addColorStop(1, "#241f33");
+  g.fillStyle = bg; g.fillRect(0, 0, 1, H);
+  /* travesaños del telar */
+  g.fillStyle = "#8a6a4a"; g.fillRect(.05, .03, .9, .045); g.fillRect(.05, H - .075, .9, .045);
+  g.fillStyle = "#a98562"; g.fillRect(.05, .03, .9, .012); g.fillRect(.05, H - .075, .9, .012);
+  /* hilos */
+  g.lineCap = "round";
+  for (let i = 0; i < nT; i++) {
+    const gl = glow[i] ? Math.max(0, 1 - (now - glow[i]) / 1300) : 0, x = wx(i);
+    g.save();
+    if (gl > 0) { g.shadowColor = COL[i]; g.shadowBlur = 18 * gl * dpr; }
+    g.strokeStyle = COL[i]; g.lineWidth = .011 + .007 * gl; g.beginPath();
+    for (let y = .075; y <= H - .075; y += .03) {
+      const off = reduce ? 0 : .016 * gl * Math.sin(now / 24) * Math.sin(Math.PI * (y - .075) / (H - .15));
+      y === .075 ? g.moveTo(x + off, y) : g.lineTo(x + off, y);
+    }
+    g.stroke(); g.restore();
+  }
+  /* tapiz: cada nota tejida es una pasada de trama */
+  rows.forEach((r, k) => {
+    const y0 = BOT - (k + 1) * RH, pr = reduce ? 1 : Math.min(1, (now - r.t) / 380), h = RH * .82;
+    g.fillStyle = COL[r.i]; g.fillRect(.09, y0, .82 * pr, h);
+    g.fillStyle = "#ffffff22"; g.fillRect(.09, y0, .82 * pr, h * .3);
+    for (let i = 0; i < nT; i++) if ((i + k) % 2 === 0 && wx(i) < .09 + .82 * pr) {
+      g.strokeStyle = COL[i]; g.lineWidth = .011; g.beginPath(); g.moveTo(wx(i), y0 - .002); g.lineTo(wx(i), y0 + h + .002); g.stroke();
+    }
+  });
+  if (now - wrongT < 350 && !reduce) { g.fillStyle = `rgba(197,141,157,${.18 * (1 - (now - wrongT) / 350)})`; g.fillRect(0, 0, 1, H); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- entrada: toque, mouse y teclado ---- */
+cv.addEventListener("pointerdown", e => {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
+  let bi = 0, bd = 9;
+  for (let i = 0; i < nT; i++) { const d = Math.abs(x - wx(i)); if (d < bd) { bd = d; bi = i; } }
+  if (bd < .5 / (nT - 1) + .02) touch(bi);
+});
+addEventListener("keydown", e => { const k = +e.key; if (k >= 1 && k <= nT) touch(k - 1); });
+$("#dl").onclick = () => {
+  const a = document.createElement("a"); a.download = "mi-tapiz-threads-of-calm.png"; a.href = cv.toDataURL("image/png"); a.click();
+};
+
+/* ---- fin de nivel, estrellas y sello ---- */
+function fnv(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function makeCode(name, stars) {
+  const a = fnv(name.trim().toLowerCase() + "|" + stars + "|TEL|" + SALT).toString(36).toUpperCase().padStart(7, "0").slice(-6);
+  return `TEL-${stars}-${a}`;
+}
+function who() {
+  let n = "";
+  try { n = (JSON.parse(localStorage.getItem("toc_prof")) || {}).name || localStorage.getItem("kin_name") || ""; } catch (e) {}
+  if (!n) { n = (prompt("¿Con qué nombre quieres firmar tu sello?") || "").trim(); try { localStorage.setItem("kin_name", n); } catch (e) {} }
+  return n;
+}
+function win() {
+  state = "done";
+  const stars = 1 + (errs <= 2 ? 1 : 0) + (errs === 0 && replays <= 1 ? 1 : 0);
+  best[L] = Math.max(best[L], stars); save();
+  $("#sub").textContent = "¡Melodía completa! Mira cómo quedó tu tapiz.";
+  [0, 1, 2, 3, 4, 5].forEach(i => tone(freq(i), i * .12 + .3, 1.8, .09));
+  setTimeout(() => showEnd(stars), reduce ? 300 : 2200);
+}
+function showEnd(stars) {
+  const all = best.every(b => b > 0), tot = best.reduce((a, b) => a + b, 0);
+  let h = `<div class="stars" aria-label="${stars} de 3 estrellas">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><h2>${PHR[L]}</h2>
+    <p>${errs} error${errs === 1 ? "" : "es"}${replays ? `, ${replays} repetición${replays > 1 ? "es" : ""}` : ""}. ${stars < 3 ? "Para 3 estrellas: sin errores y con una sola repetición como máximo." : "¡Memoria perfecta!"}</p>`;
+  if (all && L === 2) {
+    const name = who() || "Anónimo/a", code = makeCode(name, tot), tier = tot >= 9 ? "de oro" : tot >= 6 ? "de plata" : "de bronce";
+    h += `<hr style="border:0;border-top:1px solid #d9b96a55;margin:14px 0"><p><strong>Sello del Telar ${tier}</strong> · ${tot} de 9 estrellas</p>
+      <p>${name.replace(/[<>&]/g, "")}, muestra este código para reclamar tu premio:</p><div class="code" id="cd">${code}</div><button id="cp">Copiar código</button> `;
+  }
+  h += `<p style="margin-top:14px">${L < 2 ? '<button class="go" id="nx">Siguiente nivel</button> ' : ""}<button id="rp">Jugar de nuevo</button> <button id="sv">Cerrar y ver mi tapiz</button></p>`;
+  $("#card").innerHTML = h; $("#ov").hidden = false;
+  if ($("#nx")) $("#nx").onclick = () => start(L + 1);
+  $("#rp").onclick = () => start(L);
+  $("#sv").onclick = () => { $("#ov").hidden = true; };
+  if ($("#cp")) $("#cp").onclick = e => { navigator.clipboard && navigator.clipboard.writeText($("#cd").textContent); e.target.textContent = "Copiado"; };
+  ui();
+}
+start(0);
+</script>
+</body>
+</html>

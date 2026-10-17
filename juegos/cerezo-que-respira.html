@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#302a40">
+<title>Cerezo que respira · Threads of Calm</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#302a40;--vio:#7768a6;--rose:#c58d9d;--sage:#718d7e;--gold:#d9b96a;--paper:#f6f1ea;--deep:#1f1a2b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0,#4a3f66,var(--ink) 58%,var(--deep));color:var(--paper);font:16px/1.5 "DM Sans",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+a{color:inherit}
+header{width:100%;max-width:700px;display:flex;justify-content:space-between;gap:12px;padding:10px 14px 0;font-size:.9rem}
+header a{opacity:.85;text-decoration:none;padding:6px 10px;border-radius:999px;border:1px solid #f6f1ea33}
+header a:hover,header a:focus-visible{opacity:1;border-color:var(--gold)}
+h1{font:italic 600 1.55rem/1.15 "Playfair Display",Georgia,serif;margin:8px 0 2px;text-align:center}
+#sub{margin:0 0 6px;font-size:.92rem;opacity:.9;text-align:center;min-height:1.4em;padding:0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+button{font:inherit;color:var(--paper);background:#f6f1ea14;border:1px solid #f6f1ea40;border-radius:999px;padding:6px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+button.on{background:var(--vio);border-color:var(--vio)}
+button.go{background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:600}
+canvas{margin-top:10px;touch-action:none;border-radius:18px;box-shadow:0 10px 40px #0008;cursor:pointer}
+#ov{position:fixed;inset:0;background:#1f1a2bd9;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+#ov[hidden]{display:none}
+.card{max-width:420px;width:100%;background:linear-gradient(160deg,#3b3355,#2a2438);border:1px solid var(--gold);border-radius:22px;padding:26px 22px;text-align:center;-webkit-user-select:text;user-select:text}
+.card h2{font:italic 600 1.7rem/1.2 "Playfair Display",Georgia,serif;margin:0 0 8px}
+.stars{font-size:2rem;color:var(--gold);letter-spacing:.2em}
+.code{font:600 1.5rem/1.3 "DM Sans",monospace;letter-spacing:.08em;color:var(--gold);background:#0003;border-radius:12px;padding:10px;margin:12px 0;word-break:break-all}
+.card p{margin:8px 0}
+</style>
+</head>
+<body>
+<header><a id="back" href="#">← Threads of Calm</a><a id="help" href="#">Necesito ayuda</a></header>
+<h1>Cerezo que respira</h1>
+<p id="sub" aria-live="polite"></p>
+<div class="bar" id="lv" role="group" aria-label="Niveles"></div>
+<canvas id="cv" tabindex="0" role="application" aria-label="Cerezo. Mantén presionado mientras el círculo crece para inhalar y suelta mientras se encoge para exhalar. También sirve la barra espaciadora."></canvas>
+<div class="bar" style="margin-top:10px"><button id="reset">Reiniciar nivel</button><button id="snd">Sonido: sí</button></div>
+<div id="ov"><div class="card" id="card"></div></div>
+
+<script>
+/* ====== Ajustes para integrar con la página final ====== */
+const APP_URL = "../index.html"; /* cambia esta ruta al publicar */
+const SALT = "toc2026"; /* debe ser el mismo en todos los juegos y en el verificador */
+/* ======================================================= */
+const $ = s => document.querySelector(s);
+$("#back").href = APP_URL; $("#help").href = APP_URL + "#guia";
+const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* Nivel: segundos de inhalar y exhalar, número de respiraciones, estación */
+const LV = [
+  {tin: 4, tout: 4, n: 5, md: 7, spread: .5,  name: "Primavera", sky: ["#3a3150", "#7a5a78"], leaf: ["#f3b8c8", "#e9a6b8"], pet: "#f3b8c8", t: "Inhala 4 · exhala 4"},
+  {tin: 4, tout: 6, n: 6, md: 8, spread: .46, name: "Otoño",     sky: ["#2e2638", "#8a5a4a"], leaf: ["#e8997a", "#d9b96a"], pet: "#e8997a", t: "Inhala 4 · exhala 6"},
+  {tin: 5, tout: 7, n: 7, md: 8, spread: .52, name: "Invierno",  sky: ["#1f2438", "#5a6a8a"], leaf: ["#f6f1ea", "#d9d2e8"], pet: "#f6f1ea", t: "Inhala 5 · exhala 7"}
+];
+const PHR = [
+  "Cada respiración dejó una flor en tu árbol.",
+  "Soltar también es una forma de cuidarte.",
+  "Hasta en invierno, el cerezo sabe que va a florecer."
+];
+const WIN_IN = [-.15, .45]; /* ventana de tolerancia al cambiar de fase (segundos) */
+
+let best = [0, 0, 0];
+try { best = JSON.parse(localStorage.getItem("cer_best")) || best; } catch (e) {}
+const save = () => { try { localStorage.setItem("cer_best", JSON.stringify(best)); } catch (e) {} };
+
+/* ---- audio generado por código ---- */
+let ac, mute = false, breath, bg;
+const PENT = [0, 2, 4, 7, 9, 12, 14, 16];
+const note = i => 261.63 * Math.pow(2, PENT[i % PENT.length] / 12);
+function tone(f, t = 0, d = 1.8, v = .1) {
+  if (mute || !ac) return;
+  const o = ac.createOscillator(), gn = ac.createGain(), s = ac.currentTime + t;
+  o.type = "sine"; o.frequency.value = f;
+  gn.gain.setValueAtTime(0, s); gn.gain.linearRampToValueAtTime(v, s + .02);
+  gn.gain.exponentialRampToValueAtTime(.0001, s + d);
+  o.connect(gn).connect(ac.destination); o.start(s); o.stop(s + d);
+}
+function wake() {
+  if (!ac) {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      bg = ac.createGain(); bg.gain.value = 0; bg.connect(ac.destination);
+      /* tono de respiración: sube al inhalar, baja al exhalar */
+      const o = ac.createOscillator(); breath = o; o.type = "sine"; o.frequency.value = 196; o.connect(bg); o.start();
+    } catch (x) {}
+  }
+  if (ac && ac.state === "suspended") ac.resume();
+}
+$("#snd").onclick = e => { mute = !mute; e.target.textContent = "Sonido: " + (mute ? "no" : "sí"); };
+
+/* ---- estado ---- */
+let L = 0, state = "intro", seed = 1, gr = 0, grT = 0, t = 0, cyc = 0, sum = 0, cnt = 0, accs = [], pressed = false, lung = 0, cd = 0, msg = "", msgT = 0, petals = [], tips = [], petalAcc = 0;
+function mul(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
+function start(l) {
+  L = l; seed = Math.random() * 1e9 | 0; gr = 0; grT = 0; t = 0; cyc = 0; sum = 0; cnt = 0; accs = []; petals = []; msg = ""; lung = 0;
+  state = "count"; cd = 3; $("#ov").hidden = true; ui(); hud();
+}
+function hud() {
+  const v = accs.length ? Math.round(accs.reduce((a, b) => a + b, 0) / accs.length * 100) + "%" : "—";
+  $("#sub").textContent = state === "count" ? "Prepárate…" : `${LV[L].name} · respiración ${Math.min(cyc + 1, LV[L].n)}/${LV[L].n} · sincronía ${v}`;
+}
+function ui() {
+  $("#lv").innerHTML = "";
+  LV.forEach((v, i) => {
+    const b = document.createElement("button"), open = i === 0 || best[i - 1] > 0;
+    b.textContent = `${i + 1} ${"★".repeat(best[i])}${"☆".repeat(3 - best[i])}`;
+    b.disabled = !open; b.className = i === L ? "on" : "";
+    b.setAttribute("aria-label", `Nivel ${i + 1}: ${v.name}, ${v.t}, ${best[i]} de 3 estrellas`);
+    b.onclick = () => { wake(); start(i); }; $("#lv").appendChild(b);
+  });
+}
+$("#reset").onclick = () => { wake(); if (state !== "intro") start(L); };
+
+/* ---- entrada: mantener presionado = inhalar ---- */
+const cv = $("#cv"), g = cv.getContext("2d"); let size = 400, dpr = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  size = Math.max(260, Math.min(innerWidth - 16, innerHeight - 190, 640));
+  cv.style.width = cv.style.height = size + "px"; cv.width = cv.height = Math.round(size * dpr);
+}
+addEventListener("resize", resize); resize();
+cv.addEventListener("pointerdown", e => { wake(); pressed = true; cv.setPointerCapture(e.pointerId); });
+["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => cv.addEventListener(ev, () => { pressed = false; }));
+cv.addEventListener("contextmenu", e => e.preventDefault());
+addEventListener("keydown", e => { if (e.code === "Space" && state !== "intro") { e.preventDefault(); wake(); pressed = true; } });
+addEventListener("keyup", e => { if (e.code === "Space") pressed = false; });
+addEventListener("blur", () => { pressed = false; });
+
+/* ---- simulación ---- */
+const orbAt = (tt, lv) => tt < lv.tin ? .5 - .5 * Math.cos(Math.PI * tt / lv.tin) : .5 + .5 * Math.cos(Math.PI * (tt - lv.tin) / lv.tout);
+function update(dt) {
+  const lv = LV[L];
+  lung += ((pressed ? 1 : 0) - lung) * Math.min(1, dt * 2.2);
+  gr += (grT - gr) * Math.min(1, dt * 1.2);
+  if (state === "count") { cd -= dt; if (cd <= 0) { state = "play"; t = 0; hud(); } }
+  else if (state === "play") {
+    t += dt;
+    const target = t < lv.tin ? 1 : 0, valid = !(t < WIN_IN[1] || (t > lv.tin + WIN_IN[0] && t < lv.tin + WIN_IN[1]));
+    if (valid) { cnt++; sum += Math.abs(target - (pressed ? 1 : 0)); }
+    if (t >= lv.tin + lv.tout) endCycle();
+  }
+  if (breath && ac) {
+    const on = state === "play" && pressed && !mute;
+    bg.gain.setTargetAtTime(on ? .03 : 0, ac.currentTime, .12);
+    breath.frequency.setTargetAtTime(170 + 130 * lung, ac.currentTime, .15);
+  }
+  /* pétalos al exhalar, según qué tan bien respiras */
+  if (state === "play" && t >= lv.tin && !pressed && tips.length) {
+    petalAcc += dt * (reduce ? 3 : 9);
+    while (petalAcc > 1) { petalAcc--; const p = tips[Math.random() * tips.length | 0]; petals.push({x: p[0], y: p[1], vx: (Math.random() - .5) * .02, vy: .02 + Math.random() * .03, r: Math.random() * 6, ph: Math.random() * 6, s: .005 + Math.random() * .004}); }
+    if (petals.length > 180) petals.splice(0, petals.length - 180);
+  }
+  petals.forEach(p => { p.ph += dt * 2; p.x += (p.vx + Math.sin(p.ph) * .018) * dt; p.y += p.vy * dt * 2; p.r += dt * 2; });
+  petals = petals.filter(p => p.y < .96);
+  if (msgT > 0) msgT -= dt;
+}
+function endCycle() {
+  const lv = LV[L], raw = cnt ? Math.max(0, 1 - sum / cnt) : 0;
+  /* se descuenta lo que obtendría quien no hace nada (siempre igual), para que el puntaje premie respirar de verdad */
+  const base = Math.max(lv.tin, lv.tout) / (lv.tin + lv.tout), acc = Math.max(0, Math.min(1, (raw - base) / (1 - base)));
+  accs.push(acc); cyc++; t = 0; sum = 0; cnt = 0;
+  grT = Math.min(1, grT + (1 / lv.n) * (.4 + .6 * acc));
+  msg = "Sincronía " + Math.round(acc * 100) + "%"; msgT = 2.2;
+  tone(note(Math.round(acc * 4) + cyc % 3), 0, 2, .09); hud();
+  if (cyc >= lv.n) finish();
+}
+function finish() {
+  state = "done"; grT = 1; pressed = false;
+  const avg = accs.reduce((a, b) => a + b, 0) / accs.length;
+  const stars = 1 + (avg >= .6 ? 1 : 0) + (avg >= .85 ? 1 : 0);
+  best[L] = Math.max(best[L], stars); save();
+  PENT.forEach((_, i) => tone(note(i), i * .13 + .3, 1.8, .07));
+  setTimeout(() => showEnd(stars, avg), reduce ? 300 : 3200);
+}
+
+/* ---- dibujo ---- */
+let W = 0;
+function draw(now) {
+  const lv = LV[L]; W = size * dpr;
+  g.setTransform(W, 0, 0, W, 0, 0);
+  const sky = g.createLinearGradient(0, 0, 0, 1); sky.addColorStop(0, lv.sky[0]); sky.addColorStop(1, lv.sky[1]);
+  g.fillStyle = sky; g.fillRect(0, 0, 1, 1);
+  const rs = mul(77); g.fillStyle = "#fff";
+  for (let i = 0; i < 40; i++) { g.globalAlpha = .15 + .35 * rs(); g.beginPath(); g.arc(rs(), rs() * .6, .0025 + .002 * rs(), 0, 7); g.fill(); }
+  g.globalAlpha = 1;
+  /* colina */
+  g.fillStyle = "#1c1a2a"; g.beginPath(); g.moveTo(0, .93); g.quadraticCurveTo(.5, .84, 1, .93); g.lineTo(1, 1); g.lineTo(0, 1); g.fill();
+  /* árbol */
+  tips.length = 0;
+  const sw = reduce ? 0 : .02 * Math.sin(now / 1500) + .04 * lung * Math.sin(now / 1100);
+  g.lineCap = "round";
+  (function br(x, y, a, len, d, w, id) {
+    const need = gr * (lv.md + 1) - d; if (need <= 0) return;
+    const fr = Math.min(1, need), r = mul(seed + id * 7919), aa = a + sw * (d + 1) * .35;
+    const x2 = x + Math.sin(aa) * len * fr, y2 = y - Math.cos(aa) * len * fr;
+    g.strokeStyle = d > 4 ? "#7a5a62" : "#4e3a46"; g.lineWidth = Math.max(.0025, w); g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke();
+    const c1 = r(), c2 = r(), c3 = r();
+    if (fr < 1) return;
+    if (d >= lv.md - 2) {
+      const k = Math.min(1, gr * (lv.md + 1) - d), rad = (.008 + .012 * c3) * (1 + .3 * lung) * Math.min(1, k + .3);
+      g.fillStyle = lv.leaf[id % 2]; g.globalAlpha = .85; g.beginPath(); g.arc(x2, y2, rad, 0, 7); g.fill(); g.globalAlpha = 1;
+      if (d === lv.md) tips.push([x2, y2]);
+    }
+    if (d < lv.md) {
+      br(x2, y2, aa - lv.spread * (.7 + c1 * .6), len * (.72 + c2 * .1), d + 1, w * .68, id * 2 + 1);
+      br(x2, y2, aa + lv.spread * (.7 + c2 * .6), len * (.72 + c1 * .1), d + 1, w * .68, id * 2 + 2);
+    }
+  })(.5, .9, 0, .15, 0, .028, 1);
+  /* pétalos */
+  g.fillStyle = lv.pet; petals.forEach(p => { g.globalAlpha = Math.min(1, (.96 - p.y) * 8); g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.beginPath(); g.ellipse(0, 0, p.s, p.s * .6, 0, 0, 7); g.fill(); g.restore(); }); g.globalAlpha = 1;
+  /* guía de respiración */
+  const orb = state === "play" ? orbAt(t, lv) : 0, r = .055 + .06 * orb, ok = state !== "play" || t < WIN_IN[1] || (pressed === (t < lv.tin));
+  const gl = g.createRadialGradient(.5, .17, 0, .5, .17, r * 1.9); gl.addColorStop(0, ok ? "rgba(246,241,234,.5)" : "rgba(197,141,157,.35)"); gl.addColorStop(1, "rgba(246,241,234,0)");
+  g.fillStyle = gl; g.beginPath(); g.arc(.5, .17, r * 1.9, 0, 7); g.fill();
+  g.strokeStyle = ok ? "#f6f1ea" : "#c58d9d"; g.lineWidth = .006; g.beginPath(); g.arc(.5, .17, r, 0, 7); g.stroke();
+  g.fillStyle = "#f6f1ea"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = `600 ${.03}px "DM Sans",system-ui,sans-serif`;
+  g.fillText(state === "count" ? Math.ceil(cd) : state === "play" ? (t < lv.tin ? "Inhala" : "Exhala") : state === "done" ? "✿" : "", .5, .17);
+  g.font = `${.027}px "DM Sans",system-ui,sans-serif`; g.globalAlpha = .9;
+  if (state === "play" && cyc === 0 && t < lv.tin) g.fillText("Mantén presionado", .5, .3);
+  else if (state === "play" && cyc === 0) g.fillText("Suelta", .5, .3);
+  if (msgT > 0) { g.globalAlpha = Math.min(1, msgT); g.fillText(msg, .5, .3); }
+  g.globalAlpha = 1;
+}
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (state !== "intro") update(dt);
+  draw(now); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- tarjetas, estrellas y sello ---- */
+function fnv(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function makeCode(name, stars) {
+  const a = fnv(name.trim().toLowerCase() + "|" + stars + "|CER|" + SALT).toString(36).toUpperCase().padStart(7, "0").slice(-6);
+  return `CER-${stars}-${a}`;
+}
+function who() {
+  let n = "";
+  try { n = (JSON.parse(localStorage.getItem("toc_prof")) || {}).name || localStorage.getItem("kin_name") || ""; } catch (e) {}
+  if (!n) { n = (prompt("¿Con qué nombre quieres firmar tu sello?") || "").trim(); try { localStorage.setItem("kin_name", n); } catch (e) {} }
+  return n;
+}
+function showIntro() {
+  $("#card").innerHTML = `<h2>Cerezo que respira</h2><p><strong>Mantén presionado</strong> mientras el círculo crece (inhalas) y <strong>suelta</strong> mientras se encoge (exhalas). Con teclado, usa la barra espaciadora.</p>
+    <p>Cada respiración sincronizada hace crecer tu cerezo, y al exhalar caen pétalos.</p>
+    <p style="font-size:.9rem;opacity:.85">Respira a tu ritmo y sin forzarte. Si sientes mareo, suelta y respira con normalidad.</p>
+    <button class="go" id="go">Empezar</button>`;
+  $("#ov").hidden = false; $("#go").onclick = () => { wake(); start(0); };
+}
+function showEnd(stars, avg) {
+  const all = best.every(b => b > 0), tot = best.reduce((a, b) => a + b, 0);
+  let h = `<div class="stars" aria-label="${stars} de 3 estrellas">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><h2>${PHR[L]}</h2>
+    <p>Sincronía promedio: ${Math.round(avg * 100)}%. ${stars < 3 ? "Para 3 estrellas: 85% o más." : "¡Respiración en calma perfecta!"}</p>`;
+  if (all && L === 2) {
+    const name = who() || "Anónimo/a", code = makeCode(name, tot), tier = tot >= 9 ? "de oro" : tot >= 6 ? "de plata" : "de bronce";
+    h += `<hr style="border:0;border-top:1px solid #d9b96a55;margin:14px 0"><p><strong>Sello del Cerezo ${tier}</strong> · ${tot} de 9 estrellas</p>
+      <p>${name.replace(/[<>&]/g, "")}, muestra este código para reclamar tu premio:</p><div class="code" id="cd">${code}</div><button id="cp">Copiar código</button> `;
+  }
+  h += `<p style="margin-top:14px">${L < 2 ? '<button class="go" id="nx">Siguiente nivel</button> ' : ""}<button id="rp">Jugar de nuevo</button> <button id="sv">Ver mi árbol</button></p>`;
+  $("#card").innerHTML = h; $("#ov").hidden = false;
+  if ($("#nx")) $("#nx").onclick = () => start(L + 1);
+  $("#rp").onclick = () => start(L);
+  $("#sv").onclick = () => { $("#ov").hidden = true; };
+  if ($("#cp")) $("#cp").onclick = e => { navigator.clipboard && navigator.clipboard.writeText($("#cd").textContent); e.target.textContent = "Copiado"; };
+  ui();
+}
+ui(); $("#sub").textContent = "Respira con el cerezo."; showIntro();
+</script>
+</body>
+</html>

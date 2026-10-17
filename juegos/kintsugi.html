@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#302a40">
+<title>Kintsugi · Threads of Calm</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#302a40;--vio:#7768a6;--rose:#c58d9d;--sage:#718d7e;--gold:#d9b96a;--paper:#f6f1ea;--deep:#1f1a2b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0,#4a3f66,var(--ink) 58%,var(--deep));color:var(--paper);font:16px/1.5 "DM Sans",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+a{color:inherit}
+header{width:100%;max-width:700px;display:flex;justify-content:space-between;gap:12px;padding:10px 14px 0;font-size:.9rem}
+header a{opacity:.85;text-decoration:none;padding:6px 10px;border-radius:999px;border:1px solid #f6f1ea33}
+header a:hover,header a:focus-visible{opacity:1;border-color:var(--gold)}
+h1{font:italic 600 1.55rem/1.15 "Playfair Display",Georgia,serif;margin:8px 0 2px;text-align:center}
+#sub{margin:0 0 6px;font-size:.9rem;opacity:.8;text-align:center;min-height:1.4em}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+button{font:inherit;color:var(--paper);background:#f6f1ea14;border:1px solid #f6f1ea40;border-radius:999px;padding:6px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+button.on{background:var(--vio);border-color:var(--vio)}
+button.go{background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:600}
+canvas{margin-top:10px;touch-action:none;border-radius:18px;background:#ffffff08;box-shadow:0 10px 40px #0006}
+#ov{position:fixed;inset:0;background:#1f1a2bd9;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+#ov[hidden]{display:none}
+.card{max-width:420px;width:100%;background:linear-gradient(160deg,#3b3355,#2a2438);border:1px solid var(--gold);border-radius:22px;padding:26px 22px;text-align:center}
+.card h2{font:italic 600 1.7rem/1.2 "Playfair Display",Georgia,serif;margin:0 0 8px}
+.stars{font-size:2rem;color:var(--gold);letter-spacing:.2em}
+.code{font:600 1.5rem/1.3 "DM Sans",monospace;letter-spacing:.08em;color:var(--gold);background:#0003;border-radius:12px;padding:10px;margin:12px 0;word-break:break-all}
+.card p{margin:8px 0}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><a id="back" href="#">← Threads of Calm</a><a id="help" href="#">Necesito ayuda</a></header>
+<h1>Kintsugi</h1>
+<p id="sub"></p>
+<div class="bar" id="lv" role="group" aria-label="Niveles"></div>
+<canvas id="cv" aria-label="Plato roto: arrastra cada fragmento a su lugar para repararlo con oro" role="img"></canvas>
+<div class="bar" style="margin-top:10px">
+  <button id="hint">Pista</button><button id="reset">Reiniciar nivel</button><button id="snd">Sonido: sí</button>
+</div>
+<div id="ov" hidden><div class="card" id="card"></div></div>
+
+<script>
+/* ====== Ajustes para integrar con la página final ====== */
+const APP_URL = "../index.html"; /* cambia esta ruta al publicar */
+const SALT = "toc2026"; /* debe ser el mismo en el verificador */
+/* ======================================================= */
+const $ = s => document.querySelector(s);
+$("#back").href = APP_URL; $("#help").href = APP_URL + "#guia";
+const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+const LV = [
+  {n: 6,  seam: .9, t: "Seis fragmentos"},
+  {n: 10, seam: .35, t: "Diez fragmentos"},
+  {n: 16, seam: 0,  t: "Dieciséis fragmentos"}
+];
+const PHR = [
+  "Lo que se rompió no se esconde: se une con oro.",
+  "Cada grieta cuenta que seguiste adelante.",
+  "Reparar no es volver a ser igual; es volver a ser entero."
+];
+const R = .27, VC = [.5, .5];
+
+/* ---- progreso guardado ---- */
+let best = [0, 0, 0];
+try { best = JSON.parse(localStorage.getItem("kin_best")) || best; } catch (e) {}
+const save = () => { try { localStorage.setItem("kin_best", JSON.stringify(best)); } catch (e) {} };
+
+/* ---- audio generado por código (escala pentatónica) ---- */
+let ac, mute = false;
+const PENT = [0, 2, 4, 7, 9, 12, 14, 16, 19];
+function tone(f, t = 0, d = 1.3, v = .11) {
+  if (mute || !ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), s = ac.currentTime + t;
+  o.type = "sine"; o.frequency.value = f;
+  g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(v, s + .02);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  o.connect(g).connect(ac.destination); o.start(s); o.stop(s + d);
+}
+const note = i => 261.63 * Math.pow(2, PENT[i % PENT.length] / 12);
+$("#snd").onclick = e => { mute = !mute; e.target.textContent = "Sonido: " + (mute ? "no" : "sí"); };
+
+/* ---- geometría: fractura tipo Voronoi ---- */
+function clip(poly, nx, ny, d) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const da = nx * a[0] + ny * a[1] - d, db = nx * b[0] + ny * b[1] - d;
+    if (da <= 0) out.push(a);
+    if (da * db < 0) { const t = da / (da - db); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+  }
+  return out;
+}
+function fracture(n) {
+  const seeds = []; let tries = 0;
+  while (seeds.length < n && tries++ < 6000) {
+    const a = Math.random() * 6.2832, r = R * Math.sqrt(Math.random()) * .95;
+    const p = [Math.cos(a) * r, Math.sin(a) * r], md = R * 1.4 / Math.sqrt(n) * (tries > 2500 ? .5 : 1);
+    if (seeds.every(q => Math.hypot(q[0] - p[0], q[1] - p[1]) > md)) seeds.push(p);
+  }
+  const base = Array.from({length: 48}, (_, k) => [R * Math.cos(k / 48 * 6.2832), R * Math.sin(k / 48 * 6.2832)]);
+  return seeds.map((s, i) => {
+    let poly = base;
+    seeds.forEach((o, j) => {
+      if (i === j) return;
+      const nx = o[0] - s[0], ny = o[1] - s[1];
+      poly = clip(poly, nx, ny, (nx * (s[0] + o[0]) + ny * (s[1] + o[1])) / 2);
+    });
+    const c = [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length];
+    return {poly, c, x: 0, y: 0, tx: VC[0] + c[0], ty: VC[1] + c[1], locked: false, t: 0};
+  });
+}
+function seamsOf(P) {
+  const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < .004, out = [];
+  for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+    const A = P[i].poly, B = P[j].poly;
+    A.forEach((a, k) => {
+      const b = A[(k + 1) % A.length];
+      B.forEach((c, m) => {
+        const d = B[(m + 1) % B.length];
+        if ((near(a, c) && near(b, d)) || (near(a, d) && near(b, c))) out.push({i, j, a, b});
+      });
+    });
+  }
+  return out;
+}
+function inside(poly, x, y) {
+  let r = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) r = !r;
+  }
+  return r;
+}
+
+/* ---- estado del juego ---- */
+let zc = 0, L = 0, P = [], S = [], drops = 0, hints = 0, nLock = 0, finished = false, hintId = -1, hintT = 0, drag = null;
+function start(l) {
+  L = l; P = fracture(LV[L].n); S = seamsOf(P);
+  drops = 0; hints = 0; nLock = 0; finished = false; hintId = -1; drag = null;
+  P.forEach(p => {
+    do { p.x = .1 + Math.random() * .8; p.y = .1 + Math.random() * .8; }
+    while (Math.hypot(p.x - VC[0], p.y - VC[1]) < .3);
+  });
+  $("#ov").hidden = true; ui();
+}
+function ui() {
+  $("#sub").textContent = `Nivel ${L + 1}: ${LV[L].t}. Une los fragmentos para repararlos con oro.`;
+  $("#lv").innerHTML = "";
+  LV.forEach((_, i) => {
+    const b = document.createElement("button");
+    const open = i === 0 || best[i - 1] > 0;
+    b.textContent = `${i + 1} ${"★".repeat(best[i])}${"☆".repeat(3 - best[i])}`;
+    b.disabled = !open; b.className = i === L ? "on" : "";
+    b.setAttribute("aria-label", `Nivel ${i + 1}, ${best[i]} de 3 estrellas`);
+    b.onclick = () => start(i); $("#lv").appendChild(b);
+  });
+}
+
+/* ---- dibujo ---- */
+const cv = $("#cv"), g = cv.getContext("2d"); let size = 400, dpr = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  size = Math.max(260, Math.min(innerWidth - 16, innerHeight - 190, 680));
+  cv.style.width = cv.style.height = size + "px"; cv.width = cv.height = Math.round(size * dpr);
+}
+addEventListener("resize", resize); resize();
+function deco() {
+  const r = g.createRadialGradient(-.06, -.08, .02, 0, 0, .3);
+  r.addColorStop(0, "#fbf7f1"); r.addColorStop(1, "#e4d9ca");
+  g.fillStyle = r; g.fillRect(-.3, -.3, .6, .6);
+  g.lineWidth = .012;
+  [[.25, "#7768a6"], [.235, "#c58d9d"], [.16, "#8495ad"]].forEach(([rad, c]) => { g.strokeStyle = c; g.beginPath(); g.arc(0, 0, rad, 0, 7); g.stroke(); });
+  for (let k = 0; k < 8; k++) { g.save(); g.rotate(k * .785 + .3); g.fillStyle = "rgba(119,104,166,.4)"; g.beginPath(); g.ellipse(0, -.2, .011, .03, 0, 0, 7); g.fill(); g.restore(); }
+  for (let k = 0; k < 5; k++) { g.save(); g.rotate(k * 1.2566); g.fillStyle = "#e9a6b8"; g.beginPath(); g.ellipse(0, -.055, .03, .058, 0, 0, 7); g.fill(); g.restore(); }
+  g.fillStyle = "#b8a47c"; g.beginPath(); g.arc(0, 0, .016, 0, 7); g.fill();
+}
+function path(poly) { g.beginPath(); poly.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); }
+function drawPiece(p, lifted) {
+  g.save(); g.translate(p.x - p.c[0], p.y - p.c[1]);
+  if (lifted) { g.shadowColor = "#000a"; g.shadowBlur = 14 * dpr; g.shadowOffsetY = 4 * dpr; g.fillStyle = "#e4d9ca"; path(p.poly); g.fill(); g.shadowColor = "transparent"; }
+  g.save(); path(p.poly); g.clip(); deco(); g.restore();
+  g.lineWidth = .004; g.strokeStyle = "rgba(48,42,64,.55)"; path(p.poly); g.stroke();
+  g.restore();
+}
+function frame(now) {
+  g.setTransform(dpr * size, 0, 0, dpr * size, 0, 0);
+  g.clearRect(0, 0, 1, 1);
+  /* guía fantasma */
+  g.save(); g.translate(VC[0], VC[1]);
+  g.setLineDash([.012, .012]); g.lineWidth = .004; g.strokeStyle = "rgba(246,241,234,.28)";
+  g.beginPath(); g.arc(0, 0, R, 0, 7); g.stroke(); g.setLineDash([]);
+  if (LV[L].seam > 0) { g.strokeStyle = `rgba(246,241,234,${.22 * LV[L].seam})`; P.forEach(p => { if (!p.locked) { path(p.poly); g.stroke(); } }); }
+  if (hintId >= 0 && now < hintT) {
+    const p = P[hintId]; g.globalAlpha = .45 + .35 * Math.sin(now / 160);
+    g.fillStyle = "#d9b96a"; path(p.poly); g.fill(); g.globalAlpha = 1;
+  }
+  g.restore();
+  /* piezas fijas, vetas de oro, piezas sueltas */
+  P.forEach(p => { if (p.locked) drawPiece(p, false); });
+  g.save(); g.translate(VC[0], VC[1]); g.lineCap = "round";
+  S.forEach((s, k) => {
+    if (!(P[s.i].locked && P[s.j].locked)) return;
+    const pr = reduce ? 1 : Math.min(1, (now - Math.max(P[s.i].t, P[s.j].t)) / 700);
+    g.globalAlpha = finished ? .8 + .2 * Math.sin(now / 420 + k) : 1;
+    g.shadowColor = "#d9b96a"; g.shadowBlur = 9 * dpr; g.strokeStyle = "#d9b96a"; g.lineWidth = .009;
+    g.beginPath(); g.moveTo(s.a[0], s.a[1]);
+    g.lineTo(s.a[0] + (s.b[0] - s.a[0]) * pr, s.a[1] + (s.b[1] - s.a[1]) * pr); g.stroke();
+  });
+  g.restore();
+  P.filter(p => !p.locked && p !== (drag && drag.p)).sort((a, b) => (a.z || 0) - (b.z || 0)).forEach(p => drawPiece(p, false));
+  if (drag) drawPiece(drag.p, true);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- entrada: mouse, dedo y lápiz ---- */
+const pt = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+cv.addEventListener("pointerdown", e => {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (x) {} }
+  if (ac && ac.state === "suspended") ac.resume();
+  if (finished) return;
+  const [x, y] = pt(e);
+  let top = null;
+  P.forEach(p => {
+    if (!p.locked && inside(p.poly.map(v => [v[0] - p.c[0] + p.x, v[1] - p.c[1] + p.y]), x, y) && (!top || (p.z || 0) > (top.z || 0))) top = p;
+  });
+  if (top) { top.z = ++zc; drag = {p: top, dx: top.x - x, dy: top.y - y}; cv.setPointerCapture(e.pointerId); hintId = -1; }
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag) return; const [x, y] = pt(e);
+  drag.p.x = Math.max(.03, Math.min(.97, x + drag.dx)); drag.p.y = Math.max(.03, Math.min(.97, y + drag.dy));
+});
+cv.addEventListener("pointerup", () => {
+  if (!drag) return; const p = drag.p; drag = null; drops++;
+  if (Math.hypot(p.x - p.tx, p.y - p.ty) < .045) {
+    p.x = p.tx; p.y = p.ty; p.locked = true; p.t = performance.now(); tone(note(nLock), 0, 1.4); nLock++;
+    if (nLock === P.length) win();
+  }
+});
+$("#hint").onclick = () => {
+  const p = P.find(q => !q.locked); if (!p || finished) return;
+  hintId = P.indexOf(p); hintT = performance.now() + 2200; hints++;
+};
+$("#reset").onclick = () => start(L);
+
+/* ---- fin de nivel, estrellas y sello ---- */
+function fnv(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function makeCode(name, stars) {
+  const a = fnv(name.trim().toLowerCase() + "|" + stars + "|KIN|" + SALT).toString(36).toUpperCase().padStart(7, "0").slice(-6);
+  return `KIN-${stars}-${a}`;
+}
+function who() {
+  let n = "";
+  try { n = (JSON.parse(localStorage.getItem("toc_prof")) || {}).name || localStorage.getItem("kin_name") || ""; } catch (e) {}
+  if (!n) { n = (prompt("¿Con qué nombre quieres firmar tu sello?") || "").trim(); try { localStorage.setItem("kin_name", n); } catch (e) {} }
+  return n;
+}
+function win() {
+  finished = true; const n = P.length;
+  const stars = 1 + (drops <= n * 1.6 ? 1 : 0) + (drops <= n * 1.25 && hints === 0 ? 1 : 0);
+  best[L] = Math.max(best[L], stars); save();
+  PENT.forEach((_, i) => tone(note(i), i * .11, 1.6, .09));
+  setTimeout(() => showEnd(stars), reduce ? 300 : 1500);
+}
+function showEnd(stars) {
+  const all = best.every(b => b > 0), tot = best.reduce((a, b) => a + b, 0);
+  let h = `<div class="stars" aria-label="${stars} de 3 estrellas">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><h2>${PHR[L]}</h2>
+    <p>${drops} movimientos${hints ? `, ${hints} pista${hints > 1 ? "s" : ""}` : ""}. ${stars < 3 ? "Para 3 estrellas: pocos intentos y sin pistas." : "¡Reparación perfecta!"}</p>`;
+  if (all && L === 2) {
+    const name = who() || "Anónimo/a", code = makeCode(name, tot);
+    const tier = tot >= 9 ? "de oro" : tot >= 6 ? "de plata" : "de bronce";
+    h += `<hr style="border:0;border-top:1px solid #d9b96a55;margin:14px 0"><p><strong>Sello Kintsugi ${tier}</strong> · ${tot} de 9 estrellas</p>
+      <p>${name.replace(/[<>&]/g, "")}, muestra este código para reclamar tu premio:</p><div class="code" id="cd">${code}</div>
+      <button id="cp">Copiar código</button> `;
+  }
+  h += `<p style="margin-top:14px">${L < 2 ? '<button class="go" id="nx">Siguiente nivel</button> ' : ""}<button id="rp">Jugar de nuevo</button></p>`;
+  $("#card").innerHTML = h; $("#ov").hidden = false;
+  if ($("#nx")) $("#nx").onclick = () => start(L + 1);
+  $("#rp").onclick = () => start(L);
+  if ($("#cp")) $("#cp").onclick = e => { navigator.clipboard && navigator.clipboard.writeText($("#cd").textContent); e.target.textContent = "Copiado"; };
+  ui();
+}
+start(0);
+</script>
+</body>
+</html>

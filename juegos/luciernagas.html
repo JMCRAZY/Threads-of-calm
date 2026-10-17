@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#302a40">
+<title>Luciérnagas · Threads of Calm</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#302a40;--vio:#7768a6;--rose:#c58d9d;--sage:#718d7e;--gold:#d9b96a;--paper:#f6f1ea;--deep:#1f1a2b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0,#4a3f66,var(--ink) 58%,var(--deep));color:var(--paper);font:16px/1.5 "DM Sans",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+a{color:inherit}
+header{width:100%;max-width:700px;display:flex;justify-content:space-between;gap:12px;padding:10px 14px 0;font-size:.9rem}
+header a{opacity:.85;text-decoration:none;padding:6px 10px;border-radius:999px;border:1px solid #f6f1ea33}
+header a:hover,header a:focus-visible{opacity:1;border-color:var(--gold)}
+h1{font:italic 600 1.55rem/1.15 "Playfair Display",Georgia,serif;margin:8px 0 2px;text-align:center}
+#sub{margin:0 0 6px;font-size:.92rem;opacity:.9;text-align:center;min-height:1.4em;padding:0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+button{font:inherit;color:var(--paper);background:#f6f1ea14;border:1px solid #f6f1ea40;border-radius:999px;padding:6px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+button.on{background:var(--vio);border-color:var(--vio)}
+button.go{background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:600}
+canvas{margin-top:10px;touch-action:none;border-radius:18px;box-shadow:0 10px 40px #0008;background:#10101a}
+#ov{position:fixed;inset:0;background:#1f1a2bd9;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+#ov[hidden]{display:none}
+.card{max-width:420px;width:100%;background:linear-gradient(160deg,#3b3355,#2a2438);border:1px solid var(--gold);border-radius:22px;padding:26px 22px;text-align:center}
+.card h2{font:italic 600 1.7rem/1.2 "Playfair Display",Georgia,serif;margin:0 0 8px}
+.card .letter{font:italic 500 1.2rem/1.6 "Playfair Display",Georgia,serif;margin:10px 0 16px}
+.stars{font-size:2rem;color:var(--gold);letter-spacing:.2em}
+.code{font:600 1.5rem/1.3 "DM Sans",monospace;letter-spacing:.08em;color:var(--gold);background:#0003;border-radius:12px;padding:10px;margin:12px 0;word-break:break-all}
+.card p{margin:8px 0}
+</style>
+</head>
+<body>
+<header><a id="back" href="#">← Threads of Calm</a><a id="help" href="#">Necesito ayuda</a></header>
+<h1>Luciérnagas</h1>
+<p id="sub" aria-live="polite"></p>
+<div class="bar" id="lv" role="group" aria-label="Niveles"></div>
+<canvas id="cv" tabindex="0" role="application" aria-label="Jardín nocturno. Arrastra el dedo cerca de tu luz o usa las flechas para caminar despacio."></canvas>
+<div class="bar" style="margin-top:10px"><button id="reset">Reiniciar nivel</button><button id="snd">Sonido: sí</button></div>
+<div id="ov"><div class="card" id="card"></div></div>
+
+<script>
+/* ====== Ajustes para integrar con la página final ====== */
+const APP_URL = "../index.html"; /* cambia esta ruta al publicar */
+const SALT = "toc2026"; /* debe ser el mismo en todos los juegos y en el verificador */
+/* ======================================================= */
+const $ = s => document.querySelector(s);
+$("#back").href = APP_URL; $("#help").href = APP_URL + "#guia";
+const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* Nivel: luciérnagas, cartas, radio de luz, radio de atracción */
+const LV = [
+  {n: 6,  m: 3, light: .24, pull: .34, t: "Jardín tranquilo"},
+  {n: 9,  m: 4, light: .20, pull: .30, t: "Jardín con sombras"},
+  {n: 12, m: 5, light: .16, pull: .26, t: "Jardín profundo"}
+];
+const CALM = .2; /* velocidad máxima considerada "calma" */
+const MEM = [
+  "Recuerdo tu risa en la cocina, cuando creías que nadie te veía.",
+  "Todavía sé cuál era tu canción cuando algo salía bien.",
+  "Gracias por esperarme siempre en la puerta, aunque llegara tarde.",
+  "Hay una silla que sigue siendo tuya, aunque nadie se siente.",
+  "Aprendí de ti que se puede ser fuerte y tierno a la vez.",
+  "Tus manos siempre olían a algo que ya no sé nombrar, y lo extraño.",
+  "Hoy vi algo que te habría hecho reír y te lo conté en voz baja.",
+  "No te dije suficientes veces cuánto me enseñaste. Te lo digo ahora.",
+  "A veces el silencio se parece a ti, y no me asusta.",
+  "Llevo contigo en los días buenos, y eso también cuenta.",
+  "Lo que me diste no se fue: cambió de lugar y vive en mí.",
+  "Si pudiera, te dejaría una luz encendida en cada ventana."
+];
+const MSTART = [0, 3, 7];
+const PHR = [
+  "Con calma, la luz llega a todos los rincones.",
+  "No hace falta correr para encontrar lo importante.",
+  "Hasta en la noche más larga hay quien nos acompaña."
+];
+
+let best = [0, 0, 0];
+try { best = JSON.parse(localStorage.getItem("luc_best")) || best; } catch (e) {}
+const save = () => { try { localStorage.setItem("luc_best", JSON.stringify(best)); } catch (e) {} };
+
+/* ---- audio generado por código ---- */
+let ac, mute = false, pad;
+const PENT = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26];
+const note = i => 261.63 * Math.pow(2, PENT[i % PENT.length] / 12);
+function tone(f, t = 0, d = 1.8, v = .1) {
+  if (mute || !ac) return;
+  const o = ac.createOscillator(), gn = ac.createGain(), s = ac.currentTime + t;
+  o.type = "sine"; o.frequency.value = f;
+  gn.gain.setValueAtTime(0, s); gn.gain.linearRampToValueAtTime(v, s + .02);
+  gn.gain.exponentialRampToValueAtTime(.0001, s + d);
+  o.connect(gn).connect(ac.destination); o.start(s); o.stop(s + d);
+}
+function wake() {
+  if (!ac) {
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      /* ambiente nocturno: dos tonos graves con un vaivén lento */
+      pad = ac.createGain(); pad.gain.value = mute ? 0 : .03; pad.connect(ac.destination);
+      [110, 164.8].forEach(f => {
+        const o = ac.createOscillator(), l = ac.createOscillator(), lg = ac.createGain();
+        o.frequency.value = f; l.frequency.value = .07 + f / 5000; lg.gain.value = 3;
+        l.connect(lg).connect(o.frequency); o.connect(pad); o.start(); l.start();
+      });
+    } catch (x) {}
+  }
+  if (ac && ac.state === "suspended") ac.resume();
+}
+$("#snd").onclick = e => { mute = !mute; e.target.textContent = "Sonido: " + (mute ? "no" : "sí"); if (pad) pad.gain.value = mute ? 0 : .03; };
+
+/* ---- estado ---- */
+let L = 0, F = [], OB = [], pl = {x: .5, y: .88, sp: 0}, got = 0, cartas = 0, scares = 0, state = "intro", fx = [], ptr = null, keys = {};
+const garden = document.createElement("canvas"); garden.width = garden.height = 720;
+function makeObstacles() {
+  OB = [];
+  for (let t = 0; t < 400 && OB.length < 5 + L; t++) {
+    const o = {x: .1 + Math.random() * .8, y: .1 + Math.random() * .75, r: .04 + Math.random() * .035};
+    if (Math.hypot(o.x - pl.x, o.y - pl.y) > .2 && OB.every(q => Math.hypot(q.x - o.x, q.y - o.y) > q.r + o.r + .1)) OB.push(o);
+  }
+}
+function paint() {
+  const c = garden.getContext("2d"), S = 720;
+  const gr = c.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, "#2c3a52"); gr.addColorStop(1, "#1f3330");
+  c.fillStyle = gr; c.fillRect(0, 0, S, S);
+  for (let i = 0; i < 520; i++) {
+    const x = Math.random() * S, y = Math.random() * S;
+    c.strokeStyle = i % 2 ? "#3d5a4c" : "#2e4a40"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + (Math.random() - .5) * 8, y - 8 - Math.random() * 10); c.stroke();
+  }
+  for (let i = 0; i < 40; i++) { c.fillStyle = ["#c58d9d", "#b7a3d6", "#f0c987"][i % 3]; c.beginPath(); c.arc(Math.random() * S, Math.random() * S, 3 + Math.random() * 3, 0, 7); c.fill(); }
+  OB.forEach(o => {
+    const x = o.x * S, y = o.y * S, r = o.r * S;
+    c.fillStyle = "#0006"; c.beginPath(); c.ellipse(x + r * .2, y + r * .9, r * 1.2, r * .5, 0, 0, 7); c.fill();
+    c.fillStyle = "#3a2f4d"; c.beginPath(); c.arc(x, y, r * 1.15, 0, 7); c.fill();
+    for (let k = 0; k < 26; k++) { const a = Math.random() * 6.28, d = Math.random() * r * 1.05; c.fillStyle = k % 3 ? "#c58d9d" : "#f3d9e2"; c.beginPath(); c.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, 3 + Math.random() * 3, 0, 7); c.fill(); }
+  });
+}
+function start(l) {
+  L = l; pl = {x: .5, y: .9, sp: 0}; got = 0; cartas = 0; scares = 0; fx = []; ptr = null;
+  makeObstacles(); paint(); F = [];
+  for (let i = 0; i < LV[l].n; i++) {
+    let x, y; do { x = .08 + Math.random() * .84; y = .08 + Math.random() * .8; } while (Math.hypot(x - pl.x, y - pl.y) < .3 || OB.some(o => Math.hypot(o.x - x, o.y - y) < o.r + .03));
+    F.push({x, y, a: Math.random() * 6.28, mem: i < LV[l].m ? MSTART[l] + i : -1, flee: 0, cool: 0, ph: Math.random() * 6.28, on: true});
+  }
+  state = "play"; $("#ov").hidden = true; ui(); hud();
+}
+function hud() { $("#sub").textContent = `Luciérnagas ${got}/${LV[L].n} · Cartas ${cartas}/${LV[L].m} · Sustos ${scares}`; }
+function ui() {
+  $("#lv").innerHTML = "";
+  LV.forEach((v, i) => {
+    const b = document.createElement("button"), open = i === 0 || best[i - 1] > 0;
+    b.textContent = `${i + 1} ${"★".repeat(best[i])}${"☆".repeat(3 - best[i])}`;
+    b.disabled = !open; b.className = i === L ? "on" : "";
+    b.setAttribute("aria-label", `Nivel ${i + 1}: ${v.t}, ${best[i]} de 3 estrellas`);
+    b.onclick = () => { wake(); start(i); }; $("#lv").appendChild(b);
+  });
+}
+$("#reset").onclick = () => { wake(); if (state !== "intro") start(L); };
+
+/* ---- entrada ---- */
+const cv = $("#cv"), g = cv.getContext("2d"), off = document.createElement("canvas"), og = off.getContext("2d"); let size = 400, dpr = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  size = Math.max(260, Math.min(innerWidth - 16, innerHeight - 190, 640));
+  cv.style.width = cv.style.height = size + "px"; cv.width = cv.height = off.width = off.height = Math.round(size * dpr);
+}
+addEventListener("resize", resize); resize();
+const pt = e => { const r = cv.getBoundingClientRect(); return {x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height}; };
+cv.addEventListener("pointerdown", e => { wake(); ptr = pt(e); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", e => { if (ptr) ptr = pt(e); });
+["pointerup", "pointercancel"].forEach(ev => cv.addEventListener(ev, () => { ptr = null; }));
+addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k) && state === "play") e.preventDefault();
+  keys[k] = true;
+});
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+/* ---- simulación ---- */
+function control(dt) {
+  let vx = 0, vy = 0, sp = 0;
+  if (ptr) {
+    const dx = ptr.x - pl.x, dy = ptr.y - pl.y, d = Math.hypot(dx, dy);
+    sp = Math.min(.5, Math.max(0, d - .012) * 2.4);
+    if (d > 0) { vx = dx / d; vy = dy / d; }
+  } else {
+    const dx = (keys.arrowright || keys.d ? 1 : 0) - (keys.arrowleft || keys.a ? 1 : 0), dy = (keys.arrowdown || keys.s ? 1 : 0) - (keys.arrowup || keys.w ? 1 : 0);
+    if (dx || dy) { const d = Math.hypot(dx, dy); vx = dx / d; vy = dy / d; sp = keys.shift ? .42 : .14; }
+  }
+  pl.sp = sp; pl.x = Math.max(.03, Math.min(.97, pl.x + vx * sp * dt)); pl.y = Math.max(.03, Math.min(.97, pl.y + vy * sp * dt));
+  OB.forEach(o => {
+    const dx = pl.x - o.x, dy = pl.y - o.y, d = Math.hypot(dx, dy), m = o.r + .014;
+    if (d < m && d > 0) { pl.x = o.x + dx / d * m; pl.y = o.y + dy / d * m; }
+  });
+}
+function step(dt) {
+  control(dt);
+  const lv = LV[L];
+  F.forEach(f => {
+    if (!f.on) return;
+    f.ph += dt * 3; f.cool = Math.max(0, f.cool - dt);
+    const dx = pl.x - f.x, dy = pl.y - f.y, d = Math.hypot(dx, dy);
+    let sp = .05;
+    if (f.flee > 0) { f.flee -= dt; f.a = Math.atan2(-dy, -dx); sp = .24; }
+    else {
+      f.a += (Math.random() - .5) * dt * 7;
+      if (pl.sp > CALM && d < lv.light && f.cool <= 0) { f.flee = 2; f.cool = 3.5; scares++; hud(); }
+      else if (pl.sp <= CALM && d < lv.pull) { const ta = Math.atan2(dy, dx); f.a += Math.atan2(Math.sin(ta - f.a), Math.cos(ta - f.a)) * dt * 2.2; sp = .06; }
+    }
+    f.x += Math.cos(f.a) * sp * dt; f.y += Math.sin(f.a) * sp * dt;
+    if (f.x < .04 || f.x > .96) { f.a = Math.PI - f.a; f.x = Math.max(.04, Math.min(.96, f.x)); }
+    if (f.y < .04 || f.y > .96) { f.a = -f.a; f.y = Math.max(.04, Math.min(.96, f.y)); }
+    if (pl.sp <= CALM && f.flee <= 0 && d < .04) collect(f);
+  });
+  fx = fx.filter(p => p.t > 0); fx.forEach(p => p.t -= dt);
+}
+function collect(f) {
+  f.on = false; tone(note(got), 0, 1.8); got++; fx.push({x: f.x, y: f.y, t: .9, mem: f.mem >= 0});
+  if (f.mem >= 0) { cartas++; state = "card"; ptr = null; setTimeout(() => showCard(f.mem), 450); }
+  hud();
+  if (got === LV[L].n && f.mem < 0) finish();
+}
+function finish() {
+  if (state === "done") return; state = "done";
+  const stars = 1 + (scares <= 8 ? 1 : 0) + (scares <= 3 ? 1 : 0);
+  best[L] = Math.max(best[L], stars); save();
+  PENT.slice(0, 8).forEach((_, i) => tone(note(i), i * .12 + .2, 1.6, .08));
+  setTimeout(() => showEnd(stars), reduce ? 300 : 1400);
+}
+
+/* ---- dibujo ---- */
+function glowAt(c, x, y, r, col, a) {
+  const gr = c.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col.replace("A", a)); gr.addColorStop(1, col.replace("A", 0));
+  c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
+}
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (state === "play" || state === "done") step(dt);
+  const W = size * dpr, lv = LV[L];
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(garden, 0, 0, W, W);
+  /* oscuridad con un hueco de luz alrededor de la persona y de cada luciérnaga */
+  og.setTransform(1, 0, 0, 1, 0, 0); og.globalCompositeOperation = "source-over"; og.clearRect(0, 0, W, W);
+  og.fillStyle = "rgba(6,5,14,.94)"; og.fillRect(0, 0, W, W); og.globalCompositeOperation = "destination-out";
+  const fl = 1 + (reduce ? 0 : .03 * Math.sin(now / 130));
+  glowAt(og, pl.x * W, pl.y * W, lv.light * W * fl, "rgba(0,0,0,A)", 1);
+  F.forEach(f => { if (f.on) glowAt(og, f.x * W, f.y * W, .05 * W, "rgba(0,0,0,A)", .85); });
+  g.drawImage(off, 0, 0);
+  /* brillos (siempre visibles, aun en la oscuridad) */
+  g.globalCompositeOperation = "lighter";
+  F.forEach(f => {
+    if (!f.on) return;
+    const p = .6 + .4 * Math.sin(f.ph), fear = f.flee > 0;
+    glowAt(g, f.x * W, f.y * W, (f.mem >= 0 ? .045 : .03) * W * (fear ? .7 : 1), f.mem >= 0 ? "rgba(243,184,200,A)" : "rgba(232,240,138,A)", (fear ? .35 : .9) * p);
+    g.fillStyle = f.mem >= 0 ? "#fff0f4" : "#fffbd0"; g.globalAlpha = p; g.beginPath(); g.arc(f.x * W, f.y * W, .005 * W, 0, 7); g.fill(); g.globalAlpha = 1;
+  });
+  fx.forEach(p => { g.strokeStyle = p.mem ? "rgba(243,184,200,.8)" : "rgba(232,240,138,.8)"; g.globalAlpha = Math.max(0, p.t / .9); g.lineWidth = 2 * dpr; g.beginPath(); g.arc(p.x * W, p.y * W, (1 - p.t / .9) * .09 * W + 4, 0, 7); g.stroke(); g.globalAlpha = 1; });
+  g.globalCompositeOperation = "source-over";
+  /* persona con su farol */
+  glowAt(g, pl.x * W, pl.y * W, .05 * W, "rgba(255,214,150,A)", .55);
+  g.fillStyle = "#f6f1ea"; g.beginPath(); g.arc(pl.x * W, pl.y * W, .013 * W, 0, 7); g.fill();
+  g.fillStyle = "#ffd696"; g.beginPath(); g.arc(pl.x * W + .014 * W, pl.y * W + .005 * W, .006 * W, 0, 7); g.fill();
+  if (ptr) { g.strokeStyle = "rgba(246,241,234,.5)"; g.lineWidth = 2 * dpr; g.beginPath(); g.arc(ptr.x * W, ptr.y * W, .02 * W, 0, 7); g.stroke(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- tarjetas, estrellas y sello ---- */
+function fnv(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function makeCode(name, stars) {
+  const a = fnv(name.trim().toLowerCase() + "|" + stars + "|LUC|" + SALT).toString(36).toUpperCase().padStart(7, "0").slice(-6);
+  return `LUC-${stars}-${a}`;
+}
+function who() {
+  let n = "";
+  try { n = (JSON.parse(localStorage.getItem("toc_prof")) || {}).name || localStorage.getItem("kin_name") || ""; } catch (e) {}
+  if (!n) { n = (prompt("¿Con qué nombre quieres firmar tu sello?") || "").trim(); try { localStorage.setItem("kin_name", n); } catch (e) {} }
+  return n;
+}
+function showIntro() {
+  $("#card").innerHTML = `<h2>Luciérnagas</h2><p>Camina despacio con tu luz. Las luciérnagas se acercan a quien va con calma y se asustan de quien corre.</p>
+    <p>Algunas, las rosadas, guardan <strong>cartas para quien ya no está</strong>.</p>
+    <p style="font-size:.9rem;opacity:.85">Con el dedo: arrastra cerca de tu luz (cuanto más lejos, más rápido). Con teclado: flechas o WASD; Shift corre.</p>
+    <button class="go" id="go">Entrar al jardín</button>`;
+  $("#ov").hidden = false; $("#go").onclick = () => { wake(); start(0); };
+}
+function showCard(i) {
+  $("#card").innerHTML = `<p style="opacity:.8">Carta ${cartas} de ${LV[L].m}</p><div class="letter">“${MEM[i]}”</div><button class="go" id="ok">Guardar en el corazón</button>`;
+  $("#ov").hidden = false;
+  $("#ok").onclick = () => { $("#ov").hidden = true; state = "play"; if (got === LV[L].n) finish(); };
+}
+function showEnd(stars) {
+  const all = best.every(b => b > 0), tot = best.reduce((a, b) => a + b, 0);
+  let h = `<div class="stars" aria-label="${stars} de 3 estrellas">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><h2>${PHR[L]}</h2>
+    <p>${scares} susto${scares === 1 ? "" : "s"}. ${stars < 3 ? "Para 3 estrellas: 3 sustos o menos." : "¡Calma perfecta!"}</p>`;
+  if (all && L === 2) {
+    const name = who() || "Anónimo/a", code = makeCode(name, tot), tier = tot >= 9 ? "de oro" : tot >= 6 ? "de plata" : "de bronce";
+    h += `<hr style="border:0;border-top:1px solid #d9b96a55;margin:14px 0"><p><strong>Sello del Jardín ${tier}</strong> · ${tot} de 9 estrellas</p>
+      <p>${name.replace(/[<>&]/g, "")}, muestra este código para reclamar tu premio:</p><div class="code" id="cd">${code}</div><button id="cp">Copiar código</button> `;
+  }
+  h += `<p style="margin-top:14px">${L < 2 ? '<button class="go" id="nx">Siguiente nivel</button> ' : ""}<button id="rp">Jugar de nuevo</button></p>`;
+  $("#card").innerHTML = h; $("#ov").hidden = false;
+  if ($("#nx")) $("#nx").onclick = () => start(L + 1);
+  $("#rp").onclick = () => start(L);
+  if ($("#cp")) $("#cp").onclick = e => { navigator.clipboard && navigator.clipboard.writeText($("#cd").textContent); e.target.textContent = "Copiado"; };
+  ui();
+}
+ui(); $("#sub").textContent = "Un jardín de noche, una luz y mucha calma."; paint(); showIntro();
+</script>
+</body>
+</html>
