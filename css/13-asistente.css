@@ -3,7 +3,7 @@
 #asstBtn:hover,#asstBtn:focus-visible{background:var(--violet)}
 #asstBtn:focus-visible,#asstP button:focus-visible,#asstP textarea:focus-visible{outline:3px solid var(--rose);outline-offset:2px}
 body.locked #asstBtn,body.locked #asstP{display:none}
-#asstP{position:fixed;left:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:40;width:min(390px,calc(100vw - 32px));height:min(580px,calc(100dvh - 110px));display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 60px #302a4055;overflow:hidden}
+#asstP{padding:0;position:fixed;left:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:40;width:min(390px,calc(100vw - 32px));height:min(580px,calc(100dvh - 110px));display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 60px #302a4055;overflow:hidden}
 #asstP[hidden]{display:none}
 .a-h{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--plum);color:#fff;padding:12px 14px}
 .a-h strong{font:600 1.05rem/1.2 var(--serif)}
