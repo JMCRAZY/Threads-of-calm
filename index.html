@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#302a40" />
+    <meta
+      name="description"
+      content="Threads of Calm: galería de arte, poesía, autores y bienestar emocional."
+    />
+    <link rel="icon" type="image/png" href="images/icono.png" />
+    <link rel="apple-touch-icon" href="images/icono.png" />
+    <title>Threads of Calm — Galería de arte y poesía</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Shippori+Mincho:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/01-base.css" />
+    <link rel="stylesheet" href="css/02-entrada.css" />
+    <link rel="stylesheet" href="css/03-cabecera.css" />
+    <link rel="stylesheet" href="css/04-portada.css" />
+    <link rel="stylesheet" href="css/05-galeria.css" />
+    <link rel="stylesheet" href="css/06-poemas-visor.css" />
+    <link rel="stylesheet" href="css/07-ayuda-telar-guia.css" />
+    <link rel="stylesheet" href="css/08-componentes.css" />
+    <link rel="stylesheet" href="css/09-onboarding.css" />
+    <link rel="stylesheet" href="css/10-biblioteca-poemas.css" />
+    <link rel="stylesheet" href="css/11-registro.css" />
+    <link rel="stylesheet" href="css/12-juegos.css" />
+    <link rel="stylesheet" href="css/13-asistente.css" />
+  </head>
+  <body class="locked">
+    <div id="bgart" aria-hidden="true"></div>
+    <div id="veil" aria-hidden="true"></div>
+    <canvas id="petals" aria-hidden="true"></canvas>
+
+    <div id="splash" role="dialog" aria-label="Bienvenida">
+      <img src="images/logo.png" alt="Logo de Threads of Calm, galería de arte" />
+      <p>Cada hilo cuenta una historia. Juntos tejemos calma.</p>
+      <button id="enter" type="button">Entrar a la galería</button>
+    </div>
+
+    <header class="top">
+      <div class="brand">
+        <img id="brandLogo" alt="Logo de Threads of Calm" />
+        <div>
+          <h1>Threads of Calm</h1>
+          <p>Galería de arte · poesía · bienestar</p>
+        </div>
+        <button id="profBtn" class="prof" type="button" aria-label="Mi perfil"></button>
+      </div>
+    </header>
+    <nav aria-label="Secciones">
+      <ul>
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#destacadas">Obras</a></li>
+        <li><a href="#galeria">Galería</a></li>
+        <li><a href="#autores">Autores</a></li>
+        <li><a href="#biblioteca">Obras de autores</a></li>
+        <li><a href="#poemas">Poemas</a></li>
+        <li><a href="#juegos">Juegos</a></li>
+        <li><a href="#crear">Crear</a></li>
+        <li><a href="#telar">Telar</a></li>
+        <li><a href="#guia">Bienestar</a></li>
+        <li><a href="#participa">Participa</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <section class="home" id="inicio">
+        <div class="wrap in">
+          <div>
+            <div class="eyebrow">Una galería para sentir, crear y acompañarnos</div>
+            <h2 style="margin: 14px 0 18px">Hay cosas que las palabras no saben decir.</h2>
+            <p>
+              Encuentra historias en el arte, palabras que acompañan y pequeños hilos de calma que nos
+              conectan.
+            </p>
+            <div class="actions">
+              <a class="pri" href="#destacadas">Explorar las obras ↗</a
+              ><a class="sec" href="#telar">Dejar mi hilo</a>
+            </div>
+          </div>
+          <div class="stage" id="stage" aria-label="Obras flotantes"></div>
+        </div>
+      </section>
+
+      <section id="destacadas">
+        <div class="wrap">
+          <div class="head">
+            <div>
+              <h2>Obras que hablan en silencio</h2>
+              <p class="lead">Desliza el carrusel y toca una obra para verla en grande.</p>
+            </div>
+            <div class="ctrl">
+              <button id="prev" aria-label="Anterior">←</button
+              ><button id="next" aria-label="Siguiente">→</button>
+            </div>
+          </div>
+        </div>
+        <div class="track" id="track"></div>
+      </section>
+
+      <section id="galeria">
+        <div class="wrap">
+          <h2>Galería de arte</h2>
+          <p class="lead">
+            Obras creadas por personas en duelo y recuperación. Cada artista decide cómo firmar con su sello.
+          </p>
+          <div class="tools">
+            <input
+              type="search"
+              id="workSearch"
+              placeholder="Buscar obra o artista…"
+              aria-label="Buscar obra o artista"
+            />
+          </div>
+          <div class="grid" id="gallery"></div>
+          <div style="margin-top: 22px" class="card">
+            <details class="form card" style="margin-top: 18px">
+              <summary>Publicar mi obra</summary>
+              <form id="artForm">
+                <label for="aImg">Imagen de la obra</label>
+                <input type="file" id="aImg" accept="image/*" required />
+                <label for="aTitle">Título</label>
+                <input type="text" id="aTitle" maxlength="60" required />
+                <label for="aPhrase">Una frase que acompañe la obra</label>
+                <input type="text" id="aPhrase" maxlength="120" required />
+                <label for="aSign">¿Cómo quieres firmar?</label>
+                <select id="aSign">
+                  <option value="name">Con mi nombre</option>
+                  <option value="alias">Con un seudónimo</option>
+                  <option value="anon">De forma anónima</option>
+                </select>
+                <div id="aNameBox">
+                  <label for="aName">Nombre o seudónimo</label><input type="text" id="aName" maxlength="40" />
+                </div>
+                <label class="inline"
+                  ><input type="checkbox" id="aConsent" required /> Doy mi consentimiento para que mi obra se
+                  muestre públicamente con la firma que elegí.</label
+                >
+                <p style="margin-top: 14px"><button type="submit">Publicar obra</button></p>
+              </form>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="autores">
+        <div class="wrap">
+          <h2>Las voces que nos inspiran</h2>
+          <p class="lead">
+            Escritores que cambiaron la forma de mirar el mundo, con su bibliografía, sus obras sobre salud
+            mental y lo que se sabe de su experiencia. Los diagnósticos históricos son retrospectivos y no
+            sustituyen una evaluación profesional. Toca un perfil para conocer su vida y su obra.
+          </p>
+          <div class="tools">
+            <input
+              type="search"
+              id="authorSearch"
+              placeholder="Buscar autor…"
+              aria-label="Buscar autor"
+            /><select id="authorFilter" aria-label="Filtrar">
+              <option value="Todos">Todos los géneros</option>
+              <option>Narrativa</option>
+              <option>Poesía</option>
+              <option>Gótico y fantástico</option>
+              <option>Ciencia ficción</option>
+              <option>Surrealismo</option>
+              <option>Literatura japonesa</option>
+            </select>
+          </div>
+          <div class="authors" id="authorGrid"></div>
+          <h3 style="margin: 38px 0 6px; font-size: 1.6rem">También en la pintura y el arte</h3>
+          <p class="lead">
+            Grandes artistas que también atravesaron momentos difíciles. Su sufrimiento no fue lo que hizo
+            grande su obra: crear fue una forma de sostenerse, y hoy además existe la ayuda profesional.
+          </p>
+          <div class="authors" id="painterGrid"></div>
+        </div>
+      </section>
+
+      <section id="biblioteca">
+        <div class="wrap">
+          <h2>Obras de nuestros autores</h2>
+          <p class="lead">
+            Las obras que aparecen en cada perfil. Elige una para saber de qué trata y cómo se relaciona con
+            la salud mental.
+          </p>
+          <div class="tools"><select id="bookFilter" aria-label="Filtrar por autor"></select></div>
+          <div class="shelf" id="bookGrid"></div>
+        </div>
+      </section>
+      <section id="poemas">
+        <div class="wrap">
+          <h2>Poemas que no supe decir</h2>
+          <p class="lead">
+            Cada poema guarda una ilustración. Toca una tarjeta para darle la vuelta. Textos originales de
+            demostración.
+          </p>
+          <div class="pgrid" id="pgrid"></div>
+        </div>
+      </section>
+
+      <section id="juegos" class="games-section">
+        <div class="wrap">
+          <div class="games-intro">
+            <div class="eyebrow">Pequeñas pausas para explorar</div>
+            <h2>Un refugio para jugar despacio</h2>
+            <p class="lead">Cinco experiencias interactivas para respirar, reparar, descubrir y crear. No hay prisa: elige el camino que hoy te haga bien.</p>
+          </div>
+          <div class="games-grid">
+            <a class="game-card game-cherry" href="juegos/cerezo-que-respira.html">
+              <span class="game-symbol" aria-hidden="true">✿</span><span class="game-tag">Respirar</span>
+              <h3>Cerezo que respira</h3><p>Sincroniza tu respiración con el crecimiento de un cerezo y deja que los pétalos caigan a su ritmo.</p><span class="game-link">Entrar al jardín <span aria-hidden="true">↗</span></span>
+            </a>
+            <a class="game-card game-kintsugi" href="juegos/kintsugi.html">
+              <span class="game-symbol" aria-hidden="true">✧</span><span class="game-tag">Reconstruir</span>
+              <h3>Kintsugi</h3><p>Une las piezas de una vasija y descubre la belleza de aquello que se repara con paciencia.</p><span class="game-link">Reparar las piezas <span aria-hidden="true">↗</span></span>
+            </a>
+            <a class="game-card game-fireflies" href="juegos/luciernagas.html">
+              <span class="game-symbol" aria-hidden="true">☼</span><span class="game-tag">Explorar</span>
+              <h3>Luciérnagas</h3><p>Recorre un jardín nocturno con calma, encuentra pequeñas luces y descubre cartas que acompañan.</p><span class="game-link">Entrar al jardín <span aria-hidden="true">↗</span></span>
+            </a>
+            <a class="game-card game-gallery" href="juegos/galeria-perdida.html">
+              <span class="game-symbol" aria-hidden="true">❋</span><span class="game-tag">Descubrir</span>
+              <h3>Galería perdida</h3><p>Ordena los fragmentos de una obra y observa qué emociones despierta cuando vuelve a tomar forma.</p><span class="game-link">Descubrir las obras <span aria-hidden="true">↗</span></span>
+            </a>
+            <a class="game-card game-loom" href="juegos/telar-de-hilos.html">
+              <span class="game-symbol" aria-hidden="true">〰</span><span class="game-tag">Escuchar y crear</span>
+              <h3>Telar de hilos</h3><p>Sigue patrones de sonidos y colores, teje tu propio ritmo y crea un tapiz que puedas guardar.</p><span class="game-link">Tejer una melodía <span aria-hidden="true">↗</span></span>
+            </a>
+          </div>
+          <p class="games-footnote">Cada experiencia es una invitación a hacer una pausa, no una prueba que tengas que superar.</p>
+        </div>
+      </section>
+
+      <div class="wrap">
+        <!-- CREAR -->
+        <section id="crear">
+          <h2>Crear desde lo que sientes</h2>
+          <p class="lead">
+            No necesitas saber dibujar. Elige una emoción y combina colores para iniciar una pequeña
+            composición abstracta.
+          </p>
+          <div class="card">
+            <label for="moodSelect">¿Qué quieres expresar hoy?</label
+            ><select id="moodSelect">
+              <option value="calma">Calma</option>
+              <option value="esperanza">Esperanza</option>
+              <option value="nostalgia">Nostalgia</option>
+              <option value="fuerza">Fuerza</option>
+            </select>
+            <div
+              id="creationCanvas"
+              style="
+                height: 190px;
+                border-radius: 12px;
+                margin: 14px 0;
+                background:
+                  radial-gradient(circle at 25% 40%, #b8c4d4 0 15%, transparent 16%),
+                  radial-gradient(circle at 65% 55%, #718f83 0 24%, transparent 25%),
+                  linear-gradient(135deg, #e9e5f1, #d8d2e8);
+                transition: background 0.3s;
+              "
+            ></div>
+            <p class="ui" id="moodText">Una composición suave para respirar un momento.</p>
+          </div>
+        </section>
+
+        <!-- TELAR -->
+        <section id="telar">
+          <h2>Telar colectivo</h2>
+          <p class="lead">
+            Elige un color y escribe un mensaje breve, o una carta "a quien ya no está". Después de una
+            revisión, se convertirá en un hilo del tapiz.
+          </p>
+          <div class="loom" id="loom" aria-label="Tapiz colectivo"></div>
+          <div id="readout" class="card" aria-live="polite">Toca un hilo para leer su mensaje.</div>
+
+          <form id="threadForm" class="card" style="margin-top: 16px">
+            <p class="ui" style="margin: 0 0 6px; font-weight: 600">Color de tu hilo</p>
+            <div class="colors" id="colors"></div>
+            <label for="tMsg"
+              >Tu mensaje
+              <span class="ui" style="font-weight: 400; color: var(--mute)"
+                >(máx. 200 caracteres)</span
+              ></label
+            >
+            <textarea id="tMsg" rows="3" maxlength="200" required></textarea>
+            <p style="margin: 14px 0 0"><button type="submit">Tejer mi hilo</button></p>
+            <p id="tOk" class="ui" style="color: var(--sage); margin: 10px 0 0" hidden>
+              Gracias. Tu mensaje será revisado y pronto aparecerá en el tapiz.
+            </p>
+          </form>
+        </section>
+
+        <!-- GUÍA -->
+        <section id="guia">
+          <h2>Guía de bienestar</h2>
+          <p class="lead">
+            Esto no es un test ni da un diagnóstico. Son preguntas para ayudarte a pensar cómo estás y a
+            encontrar apoyos. Tus respuestas no se guardan ni se asocian a tu nombre.
+          </p>
+          <form id="guideForm" class="card">
+            <p class="ui" style="margin: 0">
+              <strong>En las últimas 2 semanas, ¿con qué frecuencia te han molestado estos problemas?</strong>
+            </p>
+            <div id="qs"></div>
+            <p style="margin: 16px 0 0"><button type="submit">Ver mi mensaje de acompañamiento</button></p>
+          </form>
+          <div id="guideResult"></div>
+        </section>
+
+        <!-- MODERACIÓN -->
+        <section id="moderacion">
+          <h2>Moderación</h2>
+          <p class="lead">
+            Cada mensaje se revisa antes de mostrarse en el tapiz. (Prototipo: en la versión final este panel
+            solo lo verá el equipo moderador.)
+          </p>
+          <div class="card" id="modList"></div>
+        </section>
+
+        <!-- ENCUESTA -->
+        <section id="encuesta">
+          <h2>Tu opinión</h2>
+          <p class="lead">Encuesta anónima de tres preguntas para mejorar la aplicación.</p>
+          <form id="surveyForm" class="card">
+            <label for="s1">¿Qué tan fácil fue usar la aplicación?</label>
+            <select id="s1" required>
+              <option value="">Elige una opción</option>
+              <option>Muy fácil</option>
+              <option>Fácil</option>
+              <option>Difícil</option>
+              <option>Muy difícil</option>
+            </select>
+            <label for="s2">¿Cómo te sentiste al recorrerla?</label>
+            <select id="s2" required>
+              <option value="">Elige una opción</option>
+              <option>Acompañada/o</option>
+              <option>Tranquila/o</option>
+              <option>Indiferente</option>
+              <option>Incómoda/o</option>
+            </select>
+            <label for="s3">¿Qué mejorarías? (opcional)</label>
+            <textarea id="s3" rows="2" maxlength="200"></textarea>
+            <p style="margin: 14px 0 0"><button type="submit">Enviar de forma anónima</button></p>
+            <p id="sOk" class="ui" style="color: var(--sage); margin: 10px 0 0" hidden>
+              ¡Gracias por tu opinión!
+            </p>
+          </form>
+        </section>
+
+        <section id="participa">
+          <h2>Participa</h2>
+          <p class="lead">
+            Escanea el código, prueba la app y cuéntanos cómo la sentiste. Tu participación ayuda a que esta
+            galería acompañe mejor.
+          </p>
+          <div class="steps">
+            <div class="card">
+              <b>1</b>
+              <h3>Escanea</h3>
+              <p>Abre Threads of Calm desde tu celular con el código QR.</p>
+            </div>
+            <div class="card">
+              <b>2</b>
+              <h3>Crea tu perfil</h3>
+              <p>Elige tu personaje: chico o chica. <a href="#" data-prof>Crear perfil</a></p>
+            </div>
+            <div class="card">
+              <b>3</b>
+              <h3>Cuenta lo que sentiste</h3>
+              <p>Abre una obra y escribe qué te transmitió.</p>
+            </div>
+            <div class="card">
+              <b>4</b>
+              <h3>Teje y opina</h3>
+              <p>Deja tu hilo en el telar y responde la encuesta anónima.</p>
+            </div>
+          </div>
+          <p class="note" id="stats" style="margin-top: 14px"></p>
+        </section>
+        <section id="compartir" class="qr-panel" aria-labelledby="qr-title">
+          <div>
+            <div class="eyebrow">Lleva la galería contigo</div>
+            <h2 id="qr-title">Comparte Threads of Calm</h2>
+            <p>
+              Cuando la aplicación esté publicada en internet, este código QR permitirá abrirla desde la
+              cámara de un teléfono. El QR se generará automáticamente con la dirección pública de la app.
+            </p>
+            <p class="qr-note" id="qrStatus">
+              Ahora estás viendo una versión local. Para que otras personas puedan abrirla escaneando el QR,
+              primero hay que publicar el sitio y usar su URL pública.
+            </p>
+            <button type="button" id="shareAppBtn">Copiar enlace de esta página</button>
+          </div>
+          <div class="qr-frame">
+            <div id="qrCanvas" role="img" aria-label="Código QR para abrir Threads of Calm">
+              <p class="qr-note">El código QR aparecerá cuando la app tenga una dirección web pública.</p>
+            </div>
+          </div>
+        </section>
+        <footer>
+          Threads of Calm es un apoyo y un puente hacia la ayuda profesional; nunca la reemplaza. Aporta a los
+          ODS 3 (salud y bienestar) y 10 (reducción de desigualdades). Las obras y mensajes de ejemplo son
+          ficticios. Fondo: pintura de ramas de cerezo (imagen del proyecto). Retratos y datos de los
+          perfiles: Wikipedia.
+        </footer>
+      </div>
+    </main>
+
+    <button id="helpBtn" type="button">Necesito ayuda</button>
+
+    <dialog id="viewer" aria-label="Detalle">
+      <div class="vwrap" id="vwrap"><div class="vbox" id="vbox"></div></div>
+    </dialog>
+    <dialog id="profD" aria-label="Mi perfil">
+      <div class="vwrap">
+        <div class="vbox one" style="text-align: left">
+          <button class="x" data-close aria-label="Cerrar">✕</button>
+          <div class="vt" style="align-items: stretch; text-align: left">
+            <h2>Mi perfil</h2>
+            <div id="profSlot"></div>
+          </div>
+        </div>
+      </div>
+    </dialog>
+    <div
+      id="onb"
+      hidden
+      style="
+        background-image:
+          linear-gradient(rgba(10, 7, 12, 0.72), rgba(10, 7, 12, 0.88)), url(images/fondo-registro.jpg);
+      "
+    >
+      <div class="reg-wrap">
+        <div class="reg-art" aria-hidden="true"><img alt="" src="images/arte-registro.jpg" /></div>
+        <form class="reg-card" id="regForm" autocomplete="off" novalidate>
+          <svg viewBox="0 0 80 50" width="64" height="40" aria-hidden="true">
+            <g fill="none" stroke="#f3b8c8" stroke-width="1.6" stroke-linecap="round">
+              <path d="M40 6C32 16 32 30 40 42C48 30 48 16 40 6Z" />
+              <path d="M40 42C28 40 18 30 16 18C26 20 34 28 40 42Z" />
+              <path d="M40 42C52 40 62 30 64 18C54 20 46 28 40 42Z" />
+              <path d="M40 42C24 44 10 38 4 28C16 28 28 32 40 42Z" />
+              <path d="M40 42C56 44 70 38 76 28C64 28 52 32 40 42Z" />
+            </g>
+          </svg>
+          <h2>Threads of Calm</h2>
+          <p class="reg-tag">Arte ✦ Emociones ✦ Bienestar</p>
+          <h3>Crea tu usuario</h3>
+          <p class="reg-sub">Un espacio seguro para sentir, crear y descubrir todo lo que llevas dentro.</p>
+          <div class="reg-pick" role="radiogroup" aria-label="Elige tu personaje">
+            <button type="button" role="radio" aria-checked="false" data-g="chico">
+              <img data-g="chico" alt="Personaje chico" /><span>Soy chico</span></button
+            ><button type="button" role="radio" aria-checked="false" data-g="chica">
+              <img data-g="chica" alt="Personaje chica" /><span>Soy chica</span>
+            </button>
+          </div>
+          <div class="reg-f">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="#f3dbe3"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c1-4.5 4-6.5 8-6.5s7 2 8 6.5" /></svg
+            ><input
+              id="rName"
+              placeholder="Ingresa tu nombre"
+              maxlength="30"
+              autocomplete="nickname"
+              aria-label="Nombre"
+            />
+          </div>
+          <div class="reg-f">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="#f3dbe3"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            >
+              <rect x="5" y="11" width="14" height="10" rx="2.5" />
+              <path d="M8 11V8a4 4 0 018 0v3" /></svg
+            ><input
+              id="rPass"
+              type="password"
+              placeholder="Ingresa tu contraseña"
+              maxlength="40"
+              autocomplete="new-password"
+              aria-label="Contraseña"
+            /><button type="button" class="eye" id="rEye" aria-label="Mostrar u ocultar contraseña">👁</button>
+          </div>
+          <div class="reg-f">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="#f3dbe3"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            >
+              <rect x="5" y="11" width="14" height="10" rx="2.5" />
+              <path d="M8 11V8a4 4 0 018 0v3" /></svg
+            ><input
+              id="rPass2"
+              type="password"
+              placeholder="Confirma tu contraseña"
+              maxlength="40"
+              autocomplete="new-password"
+              aria-label="Confirmar contraseña"
+            />
+          </div>
+          <p class="reg-err" id="rErr" role="alert"></p>
+          <button class="reg-save" type="submit">Guardar</button>
+          <p class="reg-quote">“Tu bienestar también es una forma de arte”</p>
+        </form>
+      </div>
+    </div>
+    <div id="edHome" hidden>
+      <div id="editor">
+        <div class="ed-grid">
+          <div>
+            <div class="avprev" id="avPrev"></div>
+            <label for="pName">Nombre o apodo</label
+            ><input id="pName" maxlength="30" autocomplete="nickname" /><label for="pMail"
+              >Correo electrónico (opcional)</label
+            ><input id="pMail" type="email" autocomplete="email" />
+          </div>
+          <div>
+            <div id="charCtl" hidden>
+              <label>Tu personaje</label>
+              <div class="seg">
+                <button type="button" data-cg="chico">Chico</button
+                ><button type="button" data-cg="chica">Chica</button>
+              </div>
+            </div>
+            <div id="animeCtl"></div>
+            <div id="photoCtl" hidden>
+              <label for="pPhoto">Sube tu foto</label><input type="file" id="pPhoto" accept="image/*" />
+            </div>
+          </div>
+        </div>
+        <p class="note">
+          Prototipo: tu perfil se guarda solo en este dispositivo. Para cuentas reales vinculadas al correo
+          hace falta un servicio de autenticación.
+        </p>
+        <p id="pErr" class="note" style="color: #b8433a" role="alert"></p>
+        <div class="ed-btns">
+          <button class="b" id="pSave" type="button">Guardar perfil</button
+          ><button class="b alt" id="pDel" type="button" hidden>Borrar perfil</button
+          ><button class="b alt" id="pSkip" type="button" hidden>Omitir por ahora</button>
+        </div>
+      </div>
+    </div>
+    <dialog id="helpD" aria-label="Ayuda">
+      <div class="vwrap">
+        <div class="vbox one">
+          <button class="x" data-close aria-label="Cerrar">✕</button>
+          <div class="vt">
+            <h2>Respira conmigo</h2>
+            <div class="orb" id="orbTxt">Inhala</div>
+            <p class="q">
+              Sigue el círculo: crece, inhala; se encoge, exhala. Tómate el tiempo que necesites.
+            </p>
+            <div class="urgent">
+              <strong
+                >Si piensas en hacerte daño o estás en peligro, llama ahora a emergencias de tu localidad o
+                busca a alguien de confianza.</strong
+              >
+              Mereces apoyo.
+            </div>
+            <button class="b" id="toGuide" type="button">Ir a la guía de bienestar</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/01-base.js"></script>
+    <script src="js/02-datos-obras.js"></script>
+    <script src="js/03-obras.js"></script>
+    <script src="js/04-datos-autores.js"></script>
+    <script src="js/05-autores.js"></script>
+    <script src="js/06-perfil.js"></script>
+    <script src="js/07-libros.js"></script>
+    <script src="js/08-datos-poemas.js"></script>
+    <script src="js/09-poemas.js"></script>
+    <script src="js/10-extras.js"></script>
+    <script src="js/11-telar-guia.js"></script>
+    <script src="js/12-asistente.js"></script>
+  </body>
+</html>
